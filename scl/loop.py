@@ -22,7 +22,7 @@ from typing import Callable, Optional
 
 import numpy as np
 
-from .active import random_select, ucb_select
+from .active import ei_select, random_select, thompson_select, ucb_select
 from .candidates import Candidate, featurize, sample_random
 from .diffphys import inverse_design
 from .falsify import falsify_neighbors
@@ -100,6 +100,8 @@ def run_loop(
     manifold_weight: float = 0.5,
     target_tc_k: float = 320.0,
     random_select_only: bool = False,
+    acquisition: str = "ucb",
+    world_mode: str = "single",
     use_agent: bool = False,
     agent_model: str = "claude-opus-4-7",
     agent_effort: str = "xhigh",
@@ -107,7 +109,7 @@ def run_loop(
     on_round: Optional[Callable[["RoundLog"], None]] = None,
 ) -> LoopResult:
     rng = np.random.default_rng(seed)
-    lab = Lab(rng=rng)
+    lab = Lab(rng=rng, world_mode=world_mode)
     model = GPSurrogate()
 
     agent = None
@@ -260,11 +262,25 @@ def run_loop(
                     m_, s_ = model.predict(featurize(chosen))
                     pred_mean, pred_std = float(m_[0]), float(s_[0])
                 note = "random" if random_select_only else "cold-start random"
-            else:
+            elif acquisition == "ucb":
                 chosen, pred_mean, pred_std = _ucb_with_manifold(
                     survivors, model, kappa, manifold_weight
                 )
                 note = "UCB+manifold" if manifold_weight > 0 else "UCB"
+            elif acquisition == "ei":
+                picks, mu, sd, _ = ei_select(
+                    survivors, model, current_best=float(max(y_train)), k=1,
+                )
+                chosen = picks[0]
+                pred_mean, pred_std = float(mu[0]), float(sd[0])
+                note = "EI"
+            elif acquisition == "thompson":
+                picks, mu, sd, _ = thompson_select(survivors, model, rng, k=1)
+                chosen = picks[0]
+                pred_mean, pred_std = float(mu[0]), float(sd[0])
+                note = "Thompson"
+            else:
+                raise ValueError(f"unknown acquisition: {acquisition!r}")
 
         # NNQS second opinion: catch surrogate hallucinations on top picks.
         if nnqs_every > 0 and r > 0 and r % nnqs_every == 0 and pred_mean is not None:

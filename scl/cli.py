@@ -44,6 +44,11 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--nnqs-every", type=int, default=6)
     run.add_argument("--manifold-weight", type=float, default=0.5)
     run.add_argument("--target-tc", type=float, default=320.0)
+    run.add_argument("--acquisition", default="ucb",
+                     choices=["ucb", "ei", "thompson"])
+    run.add_argument("--world-mode", default="single",
+                     choices=["single", "multi"],
+                     help="ground-truth Tc landscape (single peak vs multi-modal)")
     run.add_argument("--use-agent", action="store_true",
                      help="drive selection with an LLM hypothesizer (requires [agent] extras)")
     run.add_argument("--agent-model", default="claude-opus-4-7")
@@ -52,6 +57,20 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--baseline", action="store_true",
                      help="also run an equivalent random-search baseline")
     run.add_argument("--quiet", action="store_true")
+
+    bench = sub.add_parser("bench", help="Strategy × seed benchmark grid.")
+    bench.add_argument("--strategies",
+                       default="random,ucb,ei,thompson,ucb+manifold,ucb+falsify,ucb+inverse,all",
+                       help="comma-separated strategy names")
+    bench.add_argument("--seeds", default="1,2,3,4,5,6,7,8,9,10",
+                       help="comma-separated integer seeds")
+    bench.add_argument("--rounds", type=int, default=30)
+    bench.add_argument("--pool", type=int, default=200, dest="pool_size")
+    bench.add_argument("--init", type=int, default=5, dest="init_size")
+    bench.add_argument("--world-mode", default="single",
+                       choices=["single", "multi"])
+    bench.add_argument("--out", default="bench.csv",
+                       help="output CSV path")
 
     args = p.parse_args(argv)
 
@@ -79,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
             nnqs_every=args.nnqs_every,
             manifold_weight=args.manifold_weight,
             target_tc_k=args.target_tc,
+            acquisition=args.acquisition,
+            world_mode=args.world_mode,
             use_agent=args.use_agent,
             agent_model=args.agent_model,
             agent_effort=args.agent_effort,
@@ -97,10 +118,28 @@ def main(argv: list[str] | None = None) -> int:
                 inverse_every=0,
                 nnqs_every=0,
                 manifold_weight=0.0,
+                world_mode=args.world_mode,
                 random_select_only=True,
                 verbose=False,
             )
             _print_summary("random baseline", baseline)
+
+    if args.cmd == "bench":
+        from .bench import format_summary, run_grid, summarize, to_csv
+        strategies = [s.strip() for s in args.strategies.split(",") if s.strip()]
+        seeds = [int(s.strip()) for s in args.seeds.split(",") if s.strip()]
+        print(f"benchmarking {len(strategies)} strategies × {len(seeds)} seeds × "
+              f"{args.rounds} rounds (world_mode={args.world_mode})")
+        rows = run_grid(
+            strategies, seeds, args.rounds,
+            world_mode=args.world_mode,
+            pool_size=args.pool_size,
+            init_size=args.init_size,
+            progress=True,
+        )
+        to_csv(rows, args.out)
+        print(f"\nwrote {args.out} ({len(rows)} rows)\n")
+        print(format_summary(summarize(rows)))
 
     return 0
 
