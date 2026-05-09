@@ -9,6 +9,53 @@ underlying physics is.
 
 ![super-conductor-lab UI](docs/ui.svg)
 
+## Reading the dashboard
+
+The image above is a mock of `scl serve` mid-run. Four regions:
+
+**Left panel — "NEW RUN" form.** Every loop knob is exposed: `rounds`, `seed`,
+`pool size`, `init size`, `kappa` (UCB exploration weight), `manifold weight`,
+the three pillar cadences (`falsify every`, `inverse every`, `nnqs every`),
+and `target Tc`. Two checkboxes underneath toggle a paired random-search
+baseline and the LLM hypothesizer agent. The "PILLARS WIRED" legend lists the
+six engines doing work on every round.
+
+**Top right — best-so-far line chart.** The headline result. Best Tc found
+(K) vs round number, with two series:
+
+- **Blue** — active learning (UCB + manifold + NNQS + falsification + inverse
+  design + symbolic veto, all wired together). Climbs steeply through the
+  early rounds as the surrogate locks onto the right neighborhood
+  (high-H ternary hydrides at moderate pressure) and plateaus near **270 K**.
+- **Orange** — random-search baseline at the same seed. Climbs much more
+  slowly and tops out around **200 K**.
+
+The gap between the two curves is the value the closed-loop machinery is
+creating over throwing darts.
+
+**Top right — predicted-vs-measured scatter.** Each dot is one round: x-axis
+is what the surrogate predicted, y-axis is what the lab measured. The dashed
+diagonal is perfect calibration. Blue dots cluster tightly along the
+diagonal — the surrogate learns to predict its own neighborhood well.
+Orange dots are more diffuse — random search never gets to focus, so the
+model's predictions stay weaker.
+
+**Below the charts — live round log.** One line per completed round:
+
+```
+[active] r027 OK pred=265.8±12.1 measured=270.3K best=271.4K Li0.04 C0.16 H0.80 @ 240GPa (UCB+manifold)
+```
+
+Round number, success/fail, surrogate prediction with uncertainty, measured
+Tc, best-so-far, the realized composition + pressure, and which decision rule
+chose the candidate (UCB, UCB+manifold, NNQS, inverse-design, falsification,
+or `[outside synthesis window]` for synthesis failures).
+
+**Bottom right — "HISTORY" table.** Every completed run is persisted as
+`runs/<id>.jsonl`. Columns: run ID (`⊕` joins a paired baseline ID),
+timestamp, status, successful rounds / total, best Tc, and a "view" button
+that replays the rounds back into the charts.
+
 ## Live demo
 
 Click the Codespaces badge above. The container will:
