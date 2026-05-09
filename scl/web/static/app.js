@@ -2,10 +2,12 @@
 
 const $ = (id) => document.getElementById(id);
 
-const COLORS = {
-  active: "#58a6ff",
-  baseline: "#ffa657",
-};
+// Color rotation for comparing N runs on the same charts.
+const COMPARE_PALETTE = [
+  "#58a6ff", "#ffa657", "#3fb950", "#f85149",
+  "#a371f7", "#ff7b72", "#79c0ff", "#d2a8ff",
+];
+const COLORS = { active: "#58a6ff", baseline: "#ffa657" };
 
 let bestChart, scatterChart;
 let activeStream = null;
@@ -29,19 +31,13 @@ function initCharts() {
 
   bestChart = new Chart($("best-chart"), {
     type: "line",
-    data: { datasets: [
-      { label: "best so far (active)", data: [], borderColor: COLORS.active, backgroundColor: COLORS.active, tension: 0.1 },
-      { label: "best so far (baseline)", data: [], borderColor: COLORS.baseline, backgroundColor: COLORS.baseline, tension: 0.1, hidden: true },
-    ] },
+    data: { datasets: [] },
     options: { ...commonOpts, parsing: { xAxisKey: "x", yAxisKey: "y" } },
   });
 
   scatterChart = new Chart($("scatter-chart"), {
     type: "scatter",
-    data: { datasets: [
-      { label: "predicted vs measured (active)", data: [], borderColor: COLORS.active, backgroundColor: COLORS.active },
-      { label: "predicted vs measured (baseline)", data: [], borderColor: COLORS.baseline, backgroundColor: COLORS.baseline, hidden: true },
-    ] },
+    data: { datasets: [] },
     options: {
       ...commonOpts,
       scales: {
@@ -52,9 +48,29 @@ function initCharts() {
   });
 }
 
+function ensureSeries(label, color) {
+  let bestIdx = bestChart.data.datasets.findIndex(d => d.label === `best so far (${label})`);
+  if (bestIdx < 0) {
+    bestChart.data.datasets.push({
+      label: `best so far (${label})`,
+      data: [], borderColor: color, backgroundColor: color, tension: 0.1, pointRadius: 2,
+    });
+    bestIdx = bestChart.data.datasets.length - 1;
+  }
+  let scatterIdx = scatterChart.data.datasets.findIndex(d => d.label === `predicted vs measured (${label})`);
+  if (scatterIdx < 0) {
+    scatterChart.data.datasets.push({
+      label: `predicted vs measured (${label})`,
+      data: [], borderColor: color, backgroundColor: color, pointRadius: 3,
+    });
+    scatterIdx = scatterChart.data.datasets.length - 1;
+  }
+  return { bestIdx, scatterIdx };
+}
+
 function clearCharts() {
-  bestChart.data.datasets.forEach(d => d.data = []);
-  scatterChart.data.datasets.forEach(d => d.data = []);
+  bestChart.data.datasets = [];
+  scatterChart.data.datasets = [];
   bestChart.update("none");
   scatterChart.update("none");
   $("round-log").innerHTML = "";
@@ -76,27 +92,25 @@ function appendLog(prefix, ev, color) {
   $("round-log").prepend(li);
 }
 
-function pushRound(which, datasetIndex, ev) {
-  const bestDS = bestChart.data.datasets[datasetIndex];
-  bestDS.data.push({ x: ev.round, y: ev.best_so_far_k ?? 0 });
-  bestDS.hidden = false;
+function pushRound(label, color, ev) {
+  const { bestIdx, scatterIdx } = ensureSeries(label, color);
+  bestChart.data.datasets[bestIdx].data.push({ x: ev.round, y: ev.best_so_far_k ?? 0 });
   if (ev.success && ev.predicted_mean != null && ev.measured_tc_k != null) {
-    const scatterDS = scatterChart.data.datasets[datasetIndex];
-    scatterDS.data.push({ x: ev.predicted_mean, y: ev.measured_tc_k });
-    scatterDS.hidden = false;
+    scatterChart.data.datasets[scatterIdx].data.push({ x: ev.predicted_mean, y: ev.measured_tc_k });
   }
   bestChart.update("none");
   scatterChart.update("none");
-  appendLog(which, ev, datasetIndex === 0 ? COLORS.active : COLORS.baseline);
+  appendLog(label, ev, color);
 }
 
-function streamRun(runId, label, datasetIndex) {
+function streamRun(runId, label, color) {
   const es = new EventSource(`/api/runs/${runId}/stream`);
   let lastBest = 0;
+  ensureSeries(label, color);
   es.onmessage = (e) => {
     const ev = JSON.parse(e.data);
     if (ev.type === "round") {
-      pushRound(label, datasetIndex, ev);
+      pushRound(label, color, ev);
       lastBest = ev.best_so_far_k ?? lastBest;
       setStatus(`[${label}] round ${ev.round}, best ${lastBest.toFixed(1)}K`);
     } else if (ev.type === "summary") {
@@ -141,8 +155,8 @@ async function startRun(formData) {
   activeRunId = run_id;
   baselineRunId = baseline_id;
   $("run-id-tag").textContent = `${run_id}` + (baseline_id ? ` ⊕ ${baseline_id}` : "");
-  activeStream = streamRun(run_id, "active", 0);
-  if (baseline_id) baselineStream = streamRun(baseline_id, "baseline", 1);
+  activeStream = streamRun(run_id, "active", COLORS.active);
+  if (baseline_id) baselineStream = streamRun(baseline_id, "baseline", COLORS.baseline);
 }
 
 async function refreshHistory() {
@@ -156,32 +170,79 @@ async function refreshHistory() {
     const when = it.created_at ? new Date(it.created_at * 1000).toLocaleString() : "—";
     const best = it.best_tc_k != null ? it.best_tc_k.toFixed(1) + "K" : "—";
     const rounds = it.rounds != null ? `${it.successful_rounds}/${it.rounds}` : "—";
-    tr.innerHTML = `<td>${it.id}${it.paired_baseline_id ? ` ⊕ ${it.paired_baseline_id}` : ""}</td><td>${when}</td><td>${it.status}</td><td>${rounds}</td><td>${best}</td><td><button data-id="${it.id}" data-baseline="${it.paired_baseline_id || ""}">view</button></td>`;
+    const idLabel = `${it.id}${it.paired_baseline_id ? ` ⊕ ${it.paired_baseline_id}` : ""}`;
+    tr.innerHTML =
+      `<td><input type="checkbox" class="run-select" data-id="${it.id}" data-baseline="${it.paired_baseline_id || ""}" /></td>` +
+      `<td>${idLabel}</td>` +
+      `<td>${when}</td>` +
+      `<td>${it.status}</td>` +
+      `<td>${rounds}</td>` +
+      `<td>${best}</td>` +
+      `<td><button data-id="${it.id}" data-baseline="${it.paired_baseline_id || ""}" class="view-btn">view</button></td>` +
+      `<td>` +
+        `<a class="export-link" href="/api/runs/${it.id}/export.csv">CSV</a> · ` +
+        `<a class="export-link" href="/api/runs/${it.id}/export.json">JSON</a>` +
+      `</td>`;
     tbody.appendChild(tr);
   }
-  tbody.querySelectorAll("button[data-id]").forEach(b => {
-    b.addEventListener("click", () => loadHistorical(b.dataset.id, b.dataset.baseline || null));
+  tbody.querySelectorAll("button.view-btn").forEach(b => {
+    b.addEventListener("click", () => loadHistorical([
+      { id: b.dataset.id, label: b.dataset.id, color: COLORS.active },
+      ...(b.dataset.baseline ? [{ id: b.dataset.baseline, label: b.dataset.baseline, color: COLORS.baseline }] : []),
+    ]));
   });
 }
 
-async function loadHistorical(id, baselineId) {
+async function loadHistorical(specs) {
   const fetchRun = async (rid) => (await fetch(`/api/runs/${rid}`)).json();
   if (activeStream) activeStream.close();
   if (baselineStream) baselineStream.close();
   clearCharts();
-  $("run-id-tag").textContent = `${id}` + (baselineId ? ` ⊕ ${baselineId}` : "") + " (replay)";
-  setStatus(`replaying ${id}`);
-  const main = await fetchRun(id);
-  for (const ev of main.events) {
-    if (ev.type === "round") pushRound("active", 0, ev);
-  }
-  if (main.summary) setStatus(`[active] best ${(main.summary.best_tc_k ?? 0).toFixed(1)}K (${main.summary.successful_rounds}/${main.summary.rounds})`);
-  if (baselineId) {
-    const bl = await fetchRun(baselineId);
-    for (const ev of bl.events) {
-      if (ev.type === "round") pushRound("baseline", 1, ev);
+
+  const tag = specs.map(s => s.id).join(" ⊕ ") + " (replay)";
+  $("run-id-tag").textContent = tag;
+  setStatus(`replaying ${specs.length} run${specs.length > 1 ? "s" : ""}`);
+
+  const summaries = [];
+  for (const spec of specs) {
+    let data;
+    try {
+      data = await fetchRun(spec.id);
+    } catch (e) {
+      continue;
+    }
+    for (const ev of data.events) {
+      if (ev.type === "round") pushRound(spec.label, spec.color, ev);
+    }
+    if (data.summary) {
+      summaries.push(`${spec.label}=${(data.summary.best_tc_k ?? 0).toFixed(1)}K`);
     }
   }
+  setStatus(summaries.length ? `replay: ${summaries.join(", ")}` : `replay complete`);
+}
+
+async function compareSelected() {
+  const checked = Array.from(document.querySelectorAll(".run-select:checked"));
+  if (checked.length < 2) {
+    setStatus("pick at least two runs to compare");
+    return;
+  }
+  const specs = [];
+  let i = 0;
+  for (const cb of checked) {
+    const color = COMPARE_PALETTE[i % COMPARE_PALETTE.length];
+    specs.push({ id: cb.dataset.id, label: cb.dataset.id, color });
+    i++;
+    if (cb.dataset.baseline) {
+      specs.push({
+        id: cb.dataset.baseline,
+        label: `${cb.dataset.baseline} (baseline)`,
+        color: COMPARE_PALETTE[i % COMPARE_PALETTE.length],
+      });
+      i++;
+    }
+  }
+  await loadHistorical(specs);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -191,5 +252,6 @@ document.addEventListener("DOMContentLoaded", () => {
     startRun(new FormData(e.target));
   });
   $("refresh-history").addEventListener("click", refreshHistory);
+  $("compare-selected").addEventListener("click", compareSelected);
   refreshHistory();
 });
