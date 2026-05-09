@@ -44,6 +44,11 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--nnqs-every", type=int, default=6)
     run.add_argument("--manifold-weight", type=float, default=0.5)
     run.add_argument("--target-tc", type=float, default=320.0)
+    run.add_argument("--use-agent", action="store_true",
+                     help="drive selection with an LLM hypothesizer (requires [agent] extras)")
+    run.add_argument("--agent-model", default="claude-opus-4-7")
+    run.add_argument("--agent-effort", default="xhigh",
+                     choices=["low", "medium", "high", "xhigh", "max"])
     run.add_argument("--baseline", action="store_true",
                      help="also run an equivalent random-search baseline")
     run.add_argument("--quiet", action="store_true")
@@ -74,9 +79,12 @@ def main(argv: list[str] | None = None) -> int:
             nnqs_every=args.nnqs_every,
             manifold_weight=args.manifold_weight,
             target_tc_k=args.target_tc,
+            use_agent=args.use_agent,
+            agent_model=args.agent_model,
+            agent_effort=args.agent_effort,
             verbose=not args.quiet,
         )
-        _print_summary("active learning", active)
+        _print_summary("active learning" + (" (LLM agent)" if args.use_agent else ""), active)
 
         if args.baseline:
             baseline = run_loop(

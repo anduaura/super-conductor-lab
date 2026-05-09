@@ -100,12 +100,20 @@ def run_loop(
     manifold_weight: float = 0.5,
     target_tc_k: float = 320.0,
     random_select_only: bool = False,
+    use_agent: bool = False,
+    agent_model: str = "claude-opus-4-7",
+    agent_effort: str = "xhigh",
     verbose: bool = False,
     on_round: Optional[Callable[["RoundLog"], None]] = None,
 ) -> LoopResult:
     rng = np.random.default_rng(seed)
     lab = Lab(rng=rng)
     model = GPSurrogate()
+
+    agent = None
+    if use_agent:
+        from .agent import AgentTools, LLMHypothesizer
+        agent = LLMHypothesizer(model=agent_model, effort=agent_effort)
 
     X_train: list[np.ndarray] = []
     y_train: list[float] = []
@@ -152,6 +160,63 @@ def run_loop(
         pred_std: Optional[float] = None
         nnqs_e: Optional[float] = None
         note = ""
+
+        if agent is not None:
+            from .agent import AgentTools
+            tools = AgentTools(
+                model=model,
+                seen=seen,
+                y_train=y_train,
+                rng=rng,
+                target_tc_k=target_tc_k,
+            )
+            try:
+                proposal = agent.propose(tools, round_idx=r, total_rounds=rounds)
+            except Exception as e:
+                proposal = None
+                note = f"agent error ({type(e).__name__}); fell back to UCB"
+            if proposal is not None and symbolic_check(proposal).ok:
+                chosen = proposal
+                if X_train:
+                    m_, s_ = model.predict(featurize(chosen))
+                    pred_mean, pred_std = float(m_[0]), float(s_[0])
+                note = f"agent ({agent.model})"
+                meas = lab.run(chosen)
+                if meas.success:
+                    X_train.append(featurize(meas.candidate))
+                    y_train.append(meas.tc_k)
+                    seen.append(meas.candidate)
+                    model.fit(np.stack(X_train), np.array(y_train))
+                best_so_far = max(y_train) if y_train else 0.0
+                round_log = RoundLog(
+                    round=r,
+                    candidate=chosen,
+                    realized=meas.candidate,
+                    predicted_mean=pred_mean,
+                    predicted_std=pred_std,
+                    quantum_proxy=nnqs_e,
+                    measured_tc_k=meas.tc_k,
+                    success=meas.success,
+                    note=note + (f" [{meas.note}]" if meas.note else ""),
+                    best_so_far_k=best_so_far,
+                )
+                result.rounds.append(round_log)
+                if on_round is not None:
+                    on_round(round_log)
+                if verbose:
+                    tag = "OK" if meas.success else "FAIL"
+                    tc = f"{meas.tc_k:6.1f}K" if meas.success else "  --   "
+                    pred = (
+                        f"{pred_mean:6.1f}±{pred_std:5.1f}"
+                        if pred_mean is not None else "   n/a   "
+                    )
+                    print(
+                        f"r{r:03d} {tag} pred={pred} measured={tc} "
+                        f"best={best_so_far:6.1f}K  "
+                        f"{meas.candidate.formula()} @ {meas.candidate.pressure_gpa:.0f}GPa "
+                        f"({note})"
+                    )
+                continue
 
         do_falsify = (
             falsify_every > 0
