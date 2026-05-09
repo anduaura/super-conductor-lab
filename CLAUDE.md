@@ -135,6 +135,41 @@ channel. Do not import `world_model` from `neural.py`, `loop.py`, `manifold.py`,
 - Web layer is behind the `[web]` optional dep group; importable but not
   required for the core CLI.
 
+### Milestone 5 — multi-modal landscape + benchmark harness (done)
+- `scl/world_model.py` — added `mode="multi"` parameter; multi-mode is the
+  sum of four Gaussian peaks at distinct `(h_frac, pressure, en_diff,
+  avg_val)` centers (220 K / 270 K / 260 K / 320 K), the highest one in a
+  narrow attractor at an unusual valence. `mode="single"` still returns the
+  original unimodal landscape.
+- `scl/lab.py` and `scl/loop.py` — accept a `world_mode` parameter and
+  thread it through `true_tc`. Default stays `"single"` for backward
+  compatibility.
+- `scl/active.py` — added `ei_select` (Expected Improvement) and
+  `thompson_select` (marginal Thompson sampling) alongside the existing
+  UCB. `run_loop` now takes `acquisition="ucb"|"ei"|"thompson"`.
+- `scl/bench.py` — strategy × seed grid harness. Eight named strategies
+  (random, ucb, ei, thompson, ucb+manifold, ucb+falsify, ucb+inverse, all).
+  CSV writer + median/IQR summary table.
+- `scl bench` CLI subcommand drives the grid; results in `docs/bench/`
+  (single.csv, multi.csv, README.md analysis).
+
+Headline findings on the multi-modal landscape: random search hits 152 K
+median; UCB+manifold leads at 205 K. No strategy reliably finds Peak D
+(320 K) in 30 rounds — by design, this is the open problem the closed loop
+motivates rather than solves.
+
+### Open threads (post-Milestone-5)
+- Multi-modal landscape is hand-tuned. A reproducibility study against a
+  real DFT/exact-diag dataset would replace the heuristic peak placement.
+- "all" strategy underperforms on smooth landscapes — needs an adaptive
+  schedule (run more falsification when surrogate uncertainty is high,
+  not on a fixed cadence).
+- No EI-with-manifold or Thompson-with-manifold combinations yet — the
+  `_ucb_with_manifold` helper is hard-coded to UCB.
+- Bench results are CSV only — a static visualization page in
+  `docs/bench/` that loads the CSVs and renders box plots would be a
+  natural milestone-6 follow-on.
+
 ### Open threads (post-Milestone-3)
 - No auth on the web UI — fine for localhost, not for sharing. Add a token
   if we ever expose it.

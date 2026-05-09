@@ -33,9 +33,11 @@ class MeasurementResult:
 class Lab:
     """Stateful mock lab. Tracks every experiment requested."""
 
-    def __init__(self, rng: np.random.Generator, noise_k: float = 5.0):
+    def __init__(self, rng: np.random.Generator, noise_k: float = 5.0,
+                 world_mode: str = "single"):
         self.rng = rng
         self.noise_k = noise_k
+        self.world_mode = world_mode
         self.history: list[MeasurementResult] = []
 
     def run(self, c: Candidate) -> MeasurementResult:
@@ -50,7 +52,8 @@ class Lab:
         realized = realized_phase(c, self.rng)
         observed = max(
             0.0,
-            true_tc(realized) + float(self.rng.normal(0.0, self.noise_k)),
+            true_tc(realized, mode=self.world_mode)
+            + float(self.rng.normal(0.0, self.noise_k)),
         )
         note = "phase drift" if realized is not c else ""
         res = MeasurementResult(
