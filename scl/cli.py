@@ -35,6 +35,10 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--init", type=int, default=5, dest="init_size")
     run.add_argument("--kappa", type=float, default=2.0)
     run.add_argument("--falsify-every", type=int, default=5)
+    run.add_argument("--inverse-every", type=int, default=7)
+    run.add_argument("--nnqs-every", type=int, default=6)
+    run.add_argument("--manifold-weight", type=float, default=0.5)
+    run.add_argument("--target-tc", type=float, default=320.0)
     run.add_argument("--baseline", action="store_true",
                      help="also run an equivalent random-search baseline")
     run.add_argument("--quiet", action="store_true")
@@ -49,6 +53,10 @@ def main(argv: list[str] | None = None) -> int:
             init_size=args.init_size,
             kappa=args.kappa,
             falsify_every=args.falsify_every,
+            inverse_every=args.inverse_every,
+            nnqs_every=args.nnqs_every,
+            manifold_weight=args.manifold_weight,
+            target_tc_k=args.target_tc,
             verbose=not args.quiet,
         )
         _print_summary("active learning", active)
@@ -61,6 +69,9 @@ def main(argv: list[str] | None = None) -> int:
                 init_size=args.init_size,
                 kappa=args.kappa,
                 falsify_every=0,
+                inverse_every=0,
+                nnqs_every=0,
+                manifold_weight=0.0,
                 random_select_only=True,
                 verbose=False,
             )

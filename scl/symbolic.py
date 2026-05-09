@@ -61,6 +61,21 @@ def _charge(c: Candidate) -> Tuple[bool, str]:
     return abs(avg_val) < 4.0, f"avg valence {avg_val:.2f} indicates large charge imbalance"
 
 
+@_rule("formation-driving-force", severity="soft")
+def _formation(c: Candidate) -> Tuple[bool, str]:
+    """No EN spread → no thermodynamic driving force for compound formation."""
+    ens = [ELEMENTS[e]["EN"] for e, _ in c.composition]
+    spread = max(ens) - min(ens) if len(ens) > 1 else 0.0
+    return spread > 0.3, f"electronegativity spread {spread:.2f} below formation threshold"
+
+
+@_rule("pauli-orbital-density", severity="soft")
+def _pauli(c: Candidate) -> Tuple[bool, str]:
+    """Pauli-overlap proxy: mean ionic radius must exceed bare H radius."""
+    avg_r = sum(f * ELEMENTS[e]["radius"] for e, f in c.composition)
+    return avg_r > 30.0, f"mean ionic radius {avg_r:.0f}pm violates Pauli-overlap proxy"
+
+
 @dataclass
 class SymbolicResult:
     ok: bool

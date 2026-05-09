@@ -65,20 +65,59 @@ Never amend an author on a pushed commit.
 
 ## Architecture map
 
-| Concern                | Module               |
-| ---------------------- | -------------------- |
-| System 1 surrogate     | `scl/neural.py`      |
-| System 2 veto          | `scl/symbolic.py`    |
-| Hidden ground truth    | `scl/world_model.py` |
-| Mock self-driving lab  | `scl/lab.py`         |
-| Active learning (UCB)  | `scl/active.py`      |
-| Falsification probes   | `scl/falsify.py`     |
-| Closed-loop driver     | `scl/loop.py`        |
-| CLI                    | `scl/cli.py`         |
+| Concern                       | Module               |
+| ----------------------------- | -------------------- |
+| System 1 surrogate            | `scl/neural.py`      |
+| System 2 veto + soft rules    | `scl/symbolic.py`    |
+| Hidden ground truth (DFT)     | `scl/world_model.py` |
+| Process layer (synth + drift) | `scl/process.py`     |
+| Mock self-driving lab         | `scl/lab.py`         |
+| Active learning (UCB)         | `scl/active.py`      |
+| Manifold-curvature bonus      | `scl/manifold.py`    |
+| Falsification probes          | `scl/falsify.py`     |
+| NNQS quantum proxy (RBM/TFIM) | `scl/nnqs.py`        |
+| Differentiable inverse design | `scl/diffphys.py`    |
+| Closed-loop driver            | `scl/loop.py`        |
+| CLI                           | `scl/cli.py`         |
 
 The world model is **hidden from the surrogate** — the lab is the only data
-channel. Do not import `world_model` from `neural.py` or `loop.py` outside of
-the lab path.
+channel. Do not import `world_model` from `neural.py`, `loop.py`, `manifold.py`,
+`diffphys.py`, or `nnqs.py`. The lab and the tests are the only callers of
+`true_tc`.
+
+## Milestones
+
+### Milestone 1 — closed-loop scaffold (done)
+- Numpy-only neural surrogate (GP), symbolic veto, mock lab, UCB acquisition,
+  falsification probe, end-to-end orchestrator + CLI.
+- Beat random search by ~25K on seed 42 / 30 rounds.
+
+### Milestone 2 — virtual-brain pillars (done)
+- **NNQS** (`scl/nnqs.py`): Carleo–Troyer RBM wavefunction over the full 2^N
+  Hilbert space of a small TFIM, with analytic VMC gradients. Used as a
+  per-candidate "second opinion" every `nnqs_every` rounds.
+- **Information-manifold engine** (`scl/manifold.py`): numerical Hessian of the
+  surrogate's mean prediction provides a curvature-of-belief acquisition bonus.
+- **Differentiable physics** (`scl/diffphys.py`): inverse-design proposer that
+  gradient-descends in feature space toward a target Tc, projects to a discrete
+  composition, and runs the symbolic verifier before submitting to the lab.
+- **Symbolic verifier** extended with formation-driving-force and Pauli-overlap
+  soft rules (`scl/symbolic.py`).
+- **Process-engineering layer** (`scl/process.py`): synthesis-window survival
+  + phase nucleation drift, plumbed through `scl/lab.py`. The loop now learns
+  on the **realized** phase, not the requested one.
+
+### Open threads (post-Milestone-2)
+- NNQS proxy currently uses a heuristic (J, h) ↔ candidate mapping. Replace
+  with a learned mapping calibrated against a small DFT/exact-diag dataset.
+- Inverse design uses numerical gradients through the GP — analytic kernel
+  derivatives would be ~10× faster.
+- Process layer drift is symmetric; should be biased toward common stable
+  polymorphs once we have a database of them.
+- Persistence: still no JSONL log of histories. Needed before cross-run
+  benchmarking is meaningful.
+- World model is single-peak — add a multi-modal landscape to stress-test
+  exploration vs the manifold/inverse-design machinery.
 
 ## Planning notes (open threads)
 
