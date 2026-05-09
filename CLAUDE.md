@@ -158,6 +158,28 @@ median; UCB+manifold leads at 205 K. No strategy reliably finds Peak D
 (320 K) in 30 rounds — by design, this is the open problem the closed loop
 motivates rather than solves.
 
+### Milestone 6 — run comparison + export in web UI (done)
+- Two new export endpoints: `GET /api/runs/{id}/export.json` and `.csv`,
+  both with `Content-Disposition: attachment` so the browser downloads the
+  file directly.
+- History table gained a checkbox column and a "compare selected" button —
+  pick any number of past runs and overlay their `best so far` and
+  `predicted vs measured` series in a rotating color palette. Per-row
+  `CSV` / `JSON` links sit alongside the existing `view` button.
+- `static/app.js` was rewritten to manage chart datasets dynamically
+  (`ensureSeries(label, color)`) instead of two hard-coded series, so any
+  number of runs can be overlaid simultaneously.
+- 3 new pytests cover the export endpoints (JSON round-trip, CSV columns,
+  404 on unknown id). 61 pytests passing.
+
+### Open threads (post-Milestone-6)
+- Compare view doesn't show a delta/diff summary table — just overlaid
+  charts. A small "leaderboard" panel listing each compared run's best Tc
+  + composition would close that.
+- Export is per-run only; no bulk export of "all runs in this week."
+- Frontend chart dataset accumulation is unbounded — if you compare 50+
+  runs the canvas legend gets unreadable. Add a hard cap.
+
 ### Open threads (post-Milestone-5)
 - Multi-modal landscape is hand-tuned. A reproducibility study against a
   real DFT/exact-diag dataset would replace the heuristic peak placement.

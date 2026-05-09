@@ -121,6 +121,47 @@ def test_sync_runner_produces_summary(tmp_path: Path):
     assert rec.summary == run.summary
 
 
+def test_export_json_round_trips(tmp_path: Path):
+    app = create_app(runs_dir=tmp_path)
+    with TestClient(app) as client:
+        run_id = client.post("/api/runs", json=_TINY_CONFIG).json()["run_id"]
+        _wait_done(client, run_id)
+        r = client.get(f"/api/runs/{run_id}/export.json")
+        assert r.status_code == 200
+        assert r.headers["content-type"].startswith("application/json")
+        assert f'{run_id}.json' in r.headers["content-disposition"]
+        payload = json.loads(r.content)
+        assert payload["id"] == run_id
+        assert payload["summary"]["rounds"] == _TINY_CONFIG["rounds"] + _TINY_CONFIG["init_size"]
+        assert any(ev.get("type") == "round" for ev in payload["events"])
+
+
+def test_export_csv_has_expected_columns(tmp_path: Path):
+    app = create_app(runs_dir=tmp_path)
+    with TestClient(app) as client:
+        run_id = client.post("/api/runs", json=_TINY_CONFIG).json()["run_id"]
+        _wait_done(client, run_id)
+        r = client.get(f"/api/runs/{run_id}/export.csv")
+        assert r.status_code == 200
+        assert r.headers["content-type"].startswith("text/csv")
+        text = r.content.decode()
+        header = text.splitlines()[0]
+        for col in ("round", "success", "predicted_mean", "best_so_far_k",
+                    "realized_formula", "note"):
+            assert col in header
+        # one header + one row per round (including seed rounds)
+        non_blank = [ln for ln in text.splitlines() if ln.strip()]
+        assert len(non_blank) >= 1 + _TINY_CONFIG["rounds"]
+
+
+def test_export_404_unknown_run(tmp_path: Path):
+    app = create_app(runs_dir=tmp_path)
+    with TestClient(app) as client:
+        for ext in ("json", "csv"):
+            r = client.get(f"/api/runs/does-not-exist/export.{ext}")
+            assert r.status_code == 404
+
+
 def test_serialize_round_shape():
     """Smoke: serialize_round produces JSON-friendly output for a real RoundLog."""
     from scl.candidates import Candidate

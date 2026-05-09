@@ -166,3 +166,28 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
   font-size: 11px;
   padding: 2px 8px;
 }
+#history-table input[type="checkbox"] {
+  cursor: pointer;
+}
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.history-actions button {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+#compare-hint {
+  color: var(--muted);
+  font-size: 11px;
+}
+.export-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 11px;
+}
+.export-link:hover {
+  text-decoration: underline;
+}

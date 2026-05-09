@@ -54,10 +54,14 @@
 
     <section class="panel" id="history-panel">
       <h2>History</h2>
-      <button id="refresh-history">refresh</button>
+      <div class="history-actions">
+        <button id="refresh-history">refresh</button>
+        <button id="compare-selected">compare selected</button>
+        <span id="compare-hint">tick rows to compare 2+ runs on the same charts</span>
+      </div>
       <table id="history-table">
         <thead><tr>
-          <th>id</th><th>when</th><th>status</th><th>rounds</th><th>best Tc</th><th></th>
+          <th></th><th>id</th><th>when</th><th>status</th><th>rounds</th><th>best Tc</th><th>view</th><th>export</th>
         </tr></thead>
         <tbody></tbody>
       </table>

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import csv
+import io
 import json
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -76,6 +78,65 @@ def create_app(runs_dir: Path | str = "runs") -> FastAPI:
             "summary": run.summary,
             "error": run.error,
         }
+
+    @app.get("/api/runs/{run_id}/export.json")
+    def export_run_json(run_id: str) -> Response:
+        run = manager.get(run_id)
+        if run is None:
+            raise HTTPException(404, "no such run")
+        payload = {
+            "id": run.id,
+            "config": run.config,
+            "created_at": run.created_at,
+            "status": run.status,
+            "paired_baseline_id": run.paired_baseline_id,
+            "events": run.events,
+            "summary": run.summary,
+        }
+        return Response(
+            content=json.dumps(payload, indent=2),
+            media_type="application/json",
+            headers={"Content-Disposition": f'attachment; filename="{run.id}.json"'},
+        )
+
+    @app.get("/api/runs/{run_id}/export.csv")
+    def export_run_csv(run_id: str) -> Response:
+        run = manager.get(run_id)
+        if run is None:
+            raise HTTPException(404, "no such run")
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow([
+            "round", "success", "predicted_mean", "predicted_std",
+            "measured_tc_k", "best_so_far_k", "quantum_proxy",
+            "requested_formula", "requested_pressure_gpa",
+            "realized_formula", "realized_pressure_gpa",
+            "note",
+        ])
+        for ev in run.events:
+            if ev.get("type") != "round":
+                continue
+            cand = ev.get("candidate") or {}
+            real = ev.get("realized") or {}
+            w.writerow([
+                ev.get("round"),
+                ev.get("success"),
+                ev.get("predicted_mean"),
+                ev.get("predicted_std"),
+                ev.get("measured_tc_k"),
+                ev.get("best_so_far_k"),
+                ev.get("quantum_proxy"),
+                cand.get("formula"),
+                cand.get("pressure_gpa"),
+                real.get("formula"),
+                real.get("pressure_gpa"),
+                ev.get("note"),
+            ])
+        return Response(
+            content=buf.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{run.id}.csv"'},
+        )
 
     @app.get("/api/runs/{run_id}/stream")
     async def stream(run_id: str) -> StreamingResponse:
