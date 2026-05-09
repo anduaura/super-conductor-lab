@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,system-ui,sans-serif">
+  <defs>
+    <style>
+      .bg{fill:#0e1116}
+      .panel{fill:#161b22;stroke:#242c36}
+      .border{stroke:#242c36}
+      .fg{fill:#e6edf3}
+      .muted{fill:#8b949e}
+      .accent{fill:#58a6ff}
+      .accent2{fill:#ffa657}
+      .good{fill:#3fb950}
+      .mono{font-family:ui-monospace,monospace}
+      .label-cap{font-size:10px;text-transform:uppercase;letter-spacing:0.06em}
+      .input{fill:#0e1116;stroke:#242c36}
+    </style>
+  </defs>
+
+  <rect width="1200" height="720" class="bg"/>
+
+  <!-- header -->
+  <rect x="0" y="0" width="1200" height="60" class="panel" stroke-width="0"/>
+  <line x1="0" y1="60" x2="1200" y2="60" class="border"/>
+  <text x="24" y="32" class="fg" font-size="20" font-weight="600">super-conductor-lab</text>
+  <text x="24" y="48" class="muted" font-size="11">closed-loop neuro-symbolic discovery</text>
+
+  <!-- left config panel -->
+  <rect x="16" y="76" width="304" height="628" rx="8" class="panel" stroke-width="1"/>
+  <text x="32" y="100" class="muted label-cap">NEW RUN</text>
+
+  <!-- form rows -->
+  <g class="muted" font-size="11">
+    <text x="32" y="130">rounds</text><rect x="232" y="118" width="72" height="20" rx="4" class="input"/><text x="244" y="132" class="fg mono" font-size="11">30</text>
+    <text x="32" y="158">seed</text><rect x="232" y="146" width="72" height="20" rx="4" class="input"/><text x="244" y="160" class="fg mono" font-size="11">42</text>
+    <text x="32" y="186">pool size</text><rect x="232" y="174" width="72" height="20" rx="4" class="input"/><text x="244" y="188" class="fg mono" font-size="11">200</text>
+    <text x="32" y="214">init size</text><rect x="232" y="202" width="72" height="20" rx="4" class="input"/><text x="244" y="216" class="fg mono" font-size="11">5</text>
+    <text x="32" y="242">kappa (UCB)</text><rect x="232" y="230" width="72" height="20" rx="4" class="input"/><text x="244" y="244" class="fg mono" font-size="11">2.0</text>
+    <text x="32" y="270">manifold weight</text><rect x="232" y="258" width="72" height="20" rx="4" class="input"/><text x="244" y="272" class="fg mono" font-size="11">0.5</text>
+    <text x="32" y="298">falsify every</text><rect x="232" y="286" width="72" height="20" rx="4" class="input"/><text x="244" y="300" class="fg mono" font-size="11">5</text>
+    <text x="32" y="326">inverse every</text><rect x="232" y="314" width="72" height="20" rx="4" class="input"/><text x="244" y="328" class="fg mono" font-size="11">7</text>
+    <text x="32" y="354">nnqs every</text><rect x="232" y="342" width="72" height="20" rx="4" class="input"/><text x="244" y="356" class="fg mono" font-size="11">6</text>
+    <text x="32" y="382">target Tc (K)</text><rect x="232" y="370" width="72" height="20" rx="4" class="input"/><text x="244" y="384" class="fg mono" font-size="11">320</text>
+  </g>
+
+  <!-- compare baseline -->
+  <rect x="32" y="412" width="14" height="14" rx="2" class="input"/>
+  <path d="M35 419 L40 424 L46 415" stroke="#58a6ff" stroke-width="2" fill="none"/>
+  <text x="54" y="424" class="muted" font-size="12">compare against random baseline</text>
+
+  <!-- start button -->
+  <rect x="32" y="448" width="100" height="32" rx="4" class="accent"/>
+  <text x="82" y="468" text-anchor="middle" font-size="13" font-weight="600" fill="#0d1117">Start run</text>
+
+  <!-- legend / explanation -->
+  <line x1="32" y1="510" x2="288" y2="510" class="border"/>
+  <text x="32" y="534" class="muted label-cap">PILLARS WIRED</text>
+  <g font-size="11">
+    <text x="32" y="558" class="muted">— UCB acquisition + manifold bonus</text>
+    <text x="32" y="578" class="muted">— Symbolic veto (System 2)</text>
+    <text x="32" y="598" class="muted">— Falsification probes</text>
+    <text x="32" y="618" class="muted">— Inverse-design proposals</text>
+    <text x="32" y="638" class="muted">— NNQS quantum-proxy second opinion</text>
+    <text x="32" y="658" class="muted">— Process layer (synth + drift)</text>
+  </g>
+
+  <!-- right column: live panel -->
+  <rect x="336" y="76" width="848" height="404" rx="8" class="panel" stroke-width="1"/>
+  <text x="352" y="100" class="muted label-cap">LIVE</text>
+  <text x="392" y="100" class="muted mono" font-size="11">5cf59b6 ⊕ a113c18</text>
+  <text x="352" y="124" class="accent2 mono" font-size="11">[active] round 28, best 271.4K</text>
+
+  <!-- best-so-far line chart -->
+  <rect x="352" y="140" width="404" height="220" rx="6" class="input"/>
+  <text x="554" y="158" text-anchor="middle" class="muted" font-size="10">best so far (K)</text>
+  <!-- axes -->
+  <line x1="380" y1="170" x2="380" y2="340" stroke="#242c36"/>
+  <line x1="380" y1="340" x2="740" y2="340" stroke="#242c36"/>
+  <!-- y-axis ticks -->
+  <g class="muted mono" font-size="9">
+    <text x="376" y="174" text-anchor="end">300</text>
+    <text x="376" y="217" text-anchor="end">225</text>
+    <text x="376" y="260" text-anchor="end">150</text>
+    <text x="376" y="303" text-anchor="end">75</text>
+    <text x="376" y="343" text-anchor="end">0</text>
+  </g>
+  <!-- active line -->
+  <polyline points="385,310 395,295 410,260 425,250 440,230 455,210 470,195 490,182 510,180 535,160 560,158 590,155 620,140 650,135 685,130 720,128 740,125"
+            fill="none" stroke="#58a6ff" stroke-width="2"/>
+  <!-- baseline line -->
+  <polyline points="385,320 405,305 425,290 445,280 470,270 495,260 525,250 555,245 585,235 615,228 645,220 680,215 715,205 740,200"
+            fill="none" stroke="#ffa657" stroke-width="2"/>
+  <!-- legend -->
+  <rect x="568" y="166" width="10" height="10" class="accent"/>
+  <text x="582" y="175" class="muted" font-size="10">active</text>
+  <rect x="624" y="166" width="10" height="10" class="accent2"/>
+  <text x="638" y="175" class="muted" font-size="10">baseline</text>
+  <text x="554" y="356" text-anchor="middle" class="muted" font-size="10">round</text>
+
+  <!-- predicted vs measured scatter -->
+  <rect x="772" y="140" width="396" height="220" rx="6" class="input"/>
+  <text x="970" y="158" text-anchor="middle" class="muted" font-size="10">predicted vs measured (K)</text>
+  <line x1="800" y1="170" x2="800" y2="340" stroke="#242c36"/>
+  <line x1="800" y1="340" x2="1158" y2="340" stroke="#242c36"/>
+  <!-- diagonal -->
+  <line x1="800" y1="340" x2="1158" y2="170" stroke="#242c36" stroke-dasharray="4,4"/>
+  <!-- active scatter -->
+  <g class="accent">
+    <circle cx="850" cy="290" r="3"/><circle cx="870" cy="270" r="3"/><circle cx="895" cy="280" r="3"/>
+    <circle cx="920" cy="240" r="3"/><circle cx="950" cy="220" r="3"/><circle cx="980" cy="210" r="3"/>
+    <circle cx="1015" cy="195" r="3"/><circle cx="1045" cy="180" r="3"/><circle cx="1075" cy="200" r="3"/>
+    <circle cx="1100" cy="178" r="3"/><circle cx="1130" cy="195" r="3"/>
+  </g>
+  <g class="accent2">
+    <circle cx="845" cy="305" r="3"/><circle cx="880" cy="295" r="3"/><circle cx="910" cy="290" r="3"/>
+    <circle cx="945" cy="280" r="3"/><circle cx="985" cy="265" r="3"/><circle cx="1020" cy="245" r="3"/>
+    <circle cx="1055" cy="240" r="3"/><circle cx="1090" cy="225" r="3"/><circle cx="1125" cy="225" r="3"/>
+  </g>
+  <text x="970" y="356" text-anchor="middle" class="muted" font-size="10">predicted Tc</text>
+
+  <!-- round log -->
+  <g class="mono" font-size="10">
+    <text x="352" y="400" class="good">[active] r027 OK pred=265.8±12.1 measured=270.3K best=271.4K Li0.04 C0.16 H0.80 @ 240GPa (UCB+manifold)</text>
+    <text x="352" y="416" class="good">[active] r026 OK pred=261.0± 9.4 measured=258.7K best=263.1K Ce0.02 H0.98 @ 270GPa (NNQS E/site=-1.342)</text>
+    <text x="352" y="432" class="good">[baseline] r027 OK pred= n/a   measured=205.7K best=205.7K S0.01 Li0.07 H0.91 @ 240GPa (random)</text>
+    <text x="352" y="448" class="good">[active] r025 OK pred=255.7±11.8 measured=263.1K best=263.1K La0.16 C0.04 H0.80 @ 232GPa (inverse-design)</text>
+    <text x="352" y="464" class="muted">[active] r024 FAIL pred=240.5±18.2 measured=  --   best=255.4K Y0.20 H0.80 @ 410GPa (UCB+manifold) [outside synthesis window]</text>
+  </g>
+
+  <!-- right column: history panel -->
+  <rect x="336" y="496" width="848" height="208" rx="8" class="panel" stroke-width="1"/>
+  <text x="352" y="520" class="muted label-cap">HISTORY</text>
+  <rect x="1108" y="508" width="60" height="20" rx="4" class="accent"/>
+  <text x="1138" y="522" text-anchor="middle" font-size="11" font-weight="600" fill="#0d1117">refresh</text>
+
+  <!-- table header -->
+  <g class="muted label-cap" font-size="9">
+    <text x="352" y="548">ID</text>
+    <text x="500" y="548">WHEN</text>
+    <text x="690" y="548">STATUS</text>
+    <text x="800" y="548">ROUNDS</text>
+    <text x="900" y="548">BEST TC</text>
+  </g>
+  <line x1="352" y1="556" x2="1168" y2="556" class="border"/>
+
+  <!-- table rows -->
+  <g class="mono" font-size="11">
+    <text x="352" y="576" class="fg">5cf59b6 ⊕ a113c18</text>
+    <text x="500" y="576" class="muted">2026-05-09 06:55</text>
+    <text x="690" y="576" class="good">done</text>
+    <text x="800" y="576" class="muted">35/35</text>
+    <text x="900" y="576" class="accent">271.4K</text>
+    <rect x="1100" y="565" width="48" height="16" rx="3" class="accent"/>
+    <text x="1124" y="577" text-anchor="middle" font-size="10" font-weight="600" fill="#0d1117">view</text>
+
+    <text x="352" y="600" class="fg">e3adee5</text>
+    <text x="500" y="600" class="muted">2026-05-09 06:42</text>
+    <text x="690" y="600" class="good">done</text>
+    <text x="800" y="600" class="muted">25/30</text>
+    <text x="900" y="600" class="accent">253.9K</text>
+    <rect x="1100" y="589" width="48" height="16" rx="3" class="accent"/>
+    <text x="1124" y="601" text-anchor="middle" font-size="10" font-weight="600" fill="#0d1117">view</text>
+
+    <text x="352" y="624" class="fg">56915a4</text>
+    <text x="500" y="624" class="muted">2026-05-09 06:20</text>
+    <text x="690" y="624" class="good">done</text>
+    <text x="800" y="624" class="muted">28/35</text>
+    <text x="900" y="624" class="accent">242.1K</text>
+    <rect x="1100" y="613" width="48" height="16" rx="3" class="accent"/>
+    <text x="1124" y="625" text-anchor="middle" font-size="10" font-weight="600" fill="#0d1117">view</text>
+
+    <text x="352" y="648" class="fg">d20d7a9</text>
+    <text x="500" y="648" class="muted">2026-05-09 05:48</text>
+    <text x="690" y="648" class="good">done</text>
+    <text x="800" y="648" class="muted">33/35</text>
+    <text x="900" y="648" class="accent">271.4K</text>
+    <rect x="1100" y="637" width="48" height="16" rx="3" class="accent"/>
+    <text x="1124" y="649" text-anchor="middle" font-size="10" font-weight="600" fill="#0d1117">view</text>
+
+    <text x="352" y="672" class="fg">3b2fa5a</text>
+    <text x="500" y="672" class="muted">2026-05-09 05:34</text>
+    <text x="690" y="672" class="good">done</text>
+    <text x="800" y="672" class="muted">28/35</text>
+    <text x="900" y="672" class="accent">245.6K</text>
+    <rect x="1100" y="661" width="48" height="16" rx="3" class="accent"/>
+    <text x="1124" y="673" text-anchor="middle" font-size="10" font-weight="600" fill="#0d1117">view</text>
+  </g>
+</svg>

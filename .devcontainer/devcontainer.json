@@ -1,0 +1,21 @@
+{
+  "name": "super-conductor-lab",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "pip install -e '.[web,dev]' && pytest -q",
+  "postAttachCommand": {
+    "server": "nohup scl serve --host 0.0.0.0 --port 8765 > /tmp/scl-serve.log 2>&1 &"
+  },
+  "forwardPorts": [8765],
+  "portsAttributes": {
+    "8765": {
+      "label": "super-conductor-lab UI",
+      "onAutoForward": "openBrowser",
+      "visibility": "public"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python"]
+    }
+  }
+}
