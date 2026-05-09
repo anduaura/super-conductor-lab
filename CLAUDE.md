@@ -107,6 +107,22 @@ channel. Do not import `world_model` from `neural.py`, `loop.py`, `manifold.py`,
   + phase nucleation drift, plumbed through `scl/lab.py`. The loop now learns
   on the **realized** phase, not the requested one.
 
+### Milestone 4 — LLM hypothesizer agent (done)
+- `scl/agent.py`: `LLMHypothesizer` drives a manual tool-use loop against the
+  Anthropic SDK. `AgentTools` exposes the existing modules as 9 tools
+  (`propose_random_pool`, `symbolic_check`, `predict_tc`, `manifold_curvature`,
+  `inverse_design`, `falsify_probe`, `quantum_proxy`, `inspect_history`,
+  `submit_to_lab`). The agent picks one candidate per round; `submit_to_lab`
+  ends its turn and the loop runs the lab.
+- Defaults: `claude-opus-4-7`, `thinking={type: "adaptive"}`,
+  `effort="xhigh"`. System prompt + tool schemas are stable and cached via
+  `cache_control: ephemeral`. Falls back to UCB on any agent error.
+- Wired into `scl/loop.py` (`use_agent=True` subsumes the falsify/inverse/
+  nnqs cadences), `scl/cli.py` (`--use-agent`, `--agent-model`,
+  `--agent-effort`), and the web UI form.
+- Behind the `[agent]` optional dependency group (`pip install -e '.[agent]'`).
+  Tests mock the SDK client — no real API calls in CI.
+
 ### Milestone 3 — web UI (done)
 - FastAPI backend (`scl/web/app.py`) with REST + SSE endpoints.
 - `RunManager` (`scl/web/runner.py`) executes each run in a background thread,

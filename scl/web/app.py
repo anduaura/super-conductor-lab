@@ -30,6 +30,9 @@ class RunConfig(BaseModel):
     nnqs_every: int = Field(6, ge=0, le=100)
     manifold_weight: float = Field(0.5, ge=0.0, le=10.0)
     target_tc_k: float = Field(320.0, ge=10.0, le=1000.0)
+    use_agent: bool = False
+    agent_model: str = "claude-opus-4-7"
+    agent_effort: str = "xhigh"
     compare_baseline: bool = False
 
 

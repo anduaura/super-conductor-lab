@@ -33,6 +33,10 @@
             <input type="checkbox" name="compare_baseline" />
             compare against random baseline
           </label>
+          <label class="checkbox">
+            <input type="checkbox" name="use_agent" />
+            drive selection with LLM hypothesizer (requires <code>[agent]</code> extras + ANTHROPIC_API_KEY)
+          </label>
           <button type="submit" id="start-btn">Start run</button>
         </div>
       </form>

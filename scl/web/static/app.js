@@ -115,12 +115,13 @@ function streamRun(runId, label, datasetIndex) {
 async function startRun(formData) {
   const body = {};
   for (const [k, v] of formData.entries()) {
-    if (k === "compare_baseline") body[k] = true;
+    if (k === "compare_baseline" || k === "use_agent") body[k] = true;
     else if (v === "" || v == null) continue;
     else if (k === "kappa" || k === "manifold_weight" || k === "target_tc_k") body[k] = parseFloat(v);
     else body[k] = parseInt(v, 10);
   }
   if (body.compare_baseline === undefined) body.compare_baseline = false;
+  if (body.use_agent === undefined) body.use_agent = false;
 
   const r = await fetch("/api/runs", {
     method: "POST",
