@@ -2,35 +2,41 @@
 
 Architecture (mapped to the manifesto):
 
-    System 1  - scl.neural        Gaussian-process "hunch" over composition features.
-    System 2  - scl.symbolic      Hard-rule veto enforcing first-principles compliance.
-    World     - scl.world_model   Hidden ground-truth Tc landscape (stands in for DFT).
-    Lab       - scl.lab           Mock self-driving lab: synthesis + noisy measurement.
-    Active    - scl.active        UCB selection of next experiment.
-    Falsify   - scl.falsify       Adversarial probing of current best hypothesis.
-    Loop      - scl.loop          Orchestrator that closes the loop.
+    System 1   - scl.neural        Gaussian-process 'hunch' over composition features.
+    System 2   - scl.symbolic      Hard-rule veto + Pauli/thermo soft rules.
+    World      - scl.world_model   Hidden ground-truth Tc landscape (DFT stand-in).
+    Process    - scl.process       Synthesis-window survival + phase nucleation drift.
+    Lab        - scl.lab           Mock self-driving lab using the process layer.
+    Active     - scl.active        UCB selection of next experiment.
+    Manifold   - scl.manifold      Curvature-of-belief acquisition bonus.
+    Falsify    - scl.falsify       Adversarial probing of current best hypothesis.
+    NNQS       - scl.nnqs          RBM wavefunction (TFIM) — quantum-proxy second opinion.
+    DiffPhys   - scl.diffphys      Inverse design via gradient descent on the surrogate.
+    Loop       - scl.loop          Orchestrator that closes the loop.
 """
 
-from .candidates import Candidate, ELEMENTS, featurize, sample_random
-from .symbolic import symbolic_check, SymbolicResult
-from .neural import GPSurrogate
-from .lab import Lab, MeasurementResult
-from .active import ucb_select
+from .active import random_select, ucb_select
+from .candidates import Candidate, ELEMENTS, featurize, perturb, sample_random
+from .diffphys import inverse_design
 from .falsify import falsify_neighbors
-from .loop import run_loop, LoopResult
+from .lab import Lab, MeasurementResult
+from .loop import LoopResult, run_loop
+from .manifold import curvature, manifold_bonus
+from .neural import GPSurrogate
+from .nnqs import RBMWavefunction, exact_ground_energy, quantum_proxy
+from .process import realized_phase, synthesis_window
+from .symbolic import SymbolicResult, symbolic_check
 
 __all__ = [
-    "Candidate",
-    "ELEMENTS",
-    "featurize",
-    "sample_random",
-    "symbolic_check",
-    "SymbolicResult",
+    "Candidate", "ELEMENTS", "featurize", "perturb", "sample_random",
+    "symbolic_check", "SymbolicResult",
     "GPSurrogate",
-    "Lab",
-    "MeasurementResult",
-    "ucb_select",
+    "Lab", "MeasurementResult",
+    "ucb_select", "random_select",
+    "manifold_bonus", "curvature",
     "falsify_neighbors",
-    "run_loop",
-    "LoopResult",
+    "RBMWavefunction", "exact_ground_energy", "quantum_proxy",
+    "inverse_design",
+    "synthesis_window", "realized_phase",
+    "run_loop", "LoopResult",
 ]
