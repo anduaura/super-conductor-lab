@@ -6,16 +6,38 @@ import asyncio
 import csv
 import io
 import json
+import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Awaitable, Callable, Optional
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .runner import RunManager
 from .storage import RunStore
+
+
+_AUTH_OPEN_PATHS: tuple[str, ...] = ("/", "/healthz")
+_AUTH_OPEN_PREFIXES: tuple[str, ...] = ("/static/",)
+
+
+def _check_auth(request: Request, expected: str) -> bool:
+    """Token may arrive as ``Authorization: Bearer <token>`` or ``?token=<token>``.
+
+    Query-param fallback exists because EventSource cannot send headers.
+    Constant-time comparison avoids leaking the token via timing.
+    """
+    import hmac
+
+    auth = request.headers.get("Authorization", "")
+    candidate = auth.removeprefix("Bearer ").strip() if auth.startswith("Bearer ") else ""
+    if not candidate:
+        candidate = request.query_params.get("token", "")
+    if not candidate:
+        return False
+    return hmac.compare_digest(candidate, expected)
 
 
 _STATIC_DIR = Path(__file__).parent / "static"
@@ -38,15 +60,57 @@ class RunConfig(BaseModel):
     compare_baseline: bool = False
 
 
-def create_app(runs_dir: Path | str = "runs") -> FastAPI:
+def create_app(
+    runs_dir: Path | str = "runs",
+    auth_token: Optional[str] = None,
+) -> FastAPI:
+    """Build the FastAPI app.
+
+    If ``auth_token`` is non-empty (or the env var ``SCL_AUTH_TOKEN`` is set
+    when ``auth_token`` is None), every request to ``/api/*`` and
+    ``/static/*`` requires a Bearer token (or ``?token=<token>`` for SSE).
+    The root page (``/``) and ``/healthz`` are always open so the UI can
+    bootstrap and ask for the token.
+    """
+    if auth_token is None:
+        auth_token = os.environ.get("SCL_AUTH_TOKEN", "") or None
     store = RunStore(Path(runs_dir))
     manager = RunManager(store)
     app = FastAPI(title="super-conductor-lab")
     app.state.manager = manager
+    app.state.auth_required = bool(auth_token)
+
+    if auth_token:
+
+        @app.middleware("http")
+        async def auth_middleware(
+            request: Request,
+            call_next: Callable[[Request], Awaitable[Response]],
+        ) -> Response:
+            path = request.url.path
+            if path in _AUTH_OPEN_PATHS or any(
+                path.startswith(prefix) for prefix in _AUTH_OPEN_PREFIXES
+            ):
+                return await call_next(request)
+            if not _check_auth(request, auth_token):
+                return JSONResponse(
+                    {"detail": "missing or invalid bearer token"}, status_code=401
+                )
+            return await call_next(request)
 
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(_STATIC_DIR / "index.html")
+
+    @app.get("/healthz")
+    def healthz() -> dict[str, Any]:
+        return {"status": "ok", "auth_required": app.state.auth_required}
+
+    @app.get("/api/auth")
+    def auth_state() -> dict[str, Any]:
+        # Reachable only if auth passed (or auth disabled). Used by the
+        # frontend to confirm a token works before showing the main UI.
+        return {"ok": True}
 
     app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 

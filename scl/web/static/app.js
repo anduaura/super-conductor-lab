@@ -9,6 +9,60 @@ const COMPARE_PALETTE = [
 ];
 const COLORS = { active: "#58a6ff", baseline: "#ffa657" };
 
+const AUTH_KEY = "scl-auth-token";
+
+function getToken() {
+  return localStorage.getItem(AUTH_KEY) || "";
+}
+
+function setToken(t) {
+  if (t) localStorage.setItem(AUTH_KEY, t);
+  else localStorage.removeItem(AUTH_KEY);
+}
+
+function authHeaders() {
+  const t = getToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+function streamUrl(path) {
+  // EventSource cannot send headers; pass token as query param when set.
+  const t = getToken();
+  if (!t) return path;
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}token=${encodeURIComponent(t)}`;
+}
+
+async function authedFetch(url, options = {}) {
+  const merged = { ...options, headers: { ...(options.headers || {}), ...authHeaders() } };
+  const r = await fetch(url, merged);
+  if (r.status === 401) {
+    promptForToken();
+  }
+  return r;
+}
+
+async function promptForToken() {
+  const t = window.prompt(
+    "This server requires an auth token. Paste it here:",
+    getToken(),
+  );
+  if (t != null) {
+    setToken(t.trim());
+    location.reload();
+  }
+}
+
+async function ensureAuth() {
+  // Probe healthz to learn whether auth is required, then validate token.
+  const health = await fetch("/healthz").then(r => r.json()).catch(() => null);
+  if (!health || !health.auth_required) return;
+  const probe = await fetch("/api/auth", { headers: authHeaders() });
+  if (probe.status === 401) {
+    await promptForToken();
+  }
+}
+
 let bestChart, scatterChart;
 let activeStream = null;
 let baselineStream = null;
@@ -104,7 +158,7 @@ function pushRound(label, color, ev) {
 }
 
 function streamRun(runId, label, color) {
-  const es = new EventSource(`/api/runs/${runId}/stream`);
+  const es = new EventSource(streamUrl(`/api/runs/${runId}/stream`));
   let lastBest = 0;
   ensureSeries(label, color);
   es.onmessage = (e) => {
@@ -137,7 +191,7 @@ async function startRun(formData) {
   if (body.compare_baseline === undefined) body.compare_baseline = false;
   if (body.use_agent === undefined) body.use_agent = false;
 
-  const r = await fetch("/api/runs", {
+  const r = await authedFetch("/api/runs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -160,7 +214,7 @@ async function startRun(formData) {
 }
 
 async function refreshHistory() {
-  const r = await fetch("/api/runs");
+  const r = await authedFetch("/api/runs");
   if (!r.ok) return;
   const items = await r.json();
   const tbody = $("history-table").tBodies[0];
@@ -180,8 +234,8 @@ async function refreshHistory() {
       `<td>${best}</td>` +
       `<td><button data-id="${it.id}" data-baseline="${it.paired_baseline_id || ""}" class="view-btn">view</button></td>` +
       `<td>` +
-        `<a class="export-link" href="/api/runs/${it.id}/export.csv">CSV</a> · ` +
-        `<a class="export-link" href="/api/runs/${it.id}/export.json">JSON</a>` +
+        `<a class="export-link" href="${streamUrl(`/api/runs/${it.id}/export.csv`)}">CSV</a> · ` +
+        `<a class="export-link" href="${streamUrl(`/api/runs/${it.id}/export.json`)}">JSON</a>` +
       `</td>`;
     tbody.appendChild(tr);
   }
@@ -194,7 +248,7 @@ async function refreshHistory() {
 }
 
 async function loadHistorical(specs) {
-  const fetchRun = async (rid) => (await fetch(`/api/runs/${rid}`)).json();
+  const fetchRun = async (rid) => (await authedFetch(`/api/runs/${rid}`)).json();
   if (activeStream) activeStream.close();
   if (baselineStream) baselineStream.close();
   clearCharts();
@@ -245,8 +299,9 @@ async function compareSelected() {
   await loadHistorical(specs);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   initCharts();
+  await ensureAuth();
   $("run-form").addEventListener("submit", (e) => {
     e.preventDefault();
     startRun(new FormData(e.target));

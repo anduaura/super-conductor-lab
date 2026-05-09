@@ -1,0 +1,44 @@
+# Fly.io config — see https://fly.io/docs/reference/configuration/
+#
+# Create the app once:
+#   fly launch --no-deploy --copy-config --name <YOUR_APP_NAME>
+#   fly secrets set SCL_AUTH_TOKEN=$(openssl rand -hex 24)
+#   fly volumes create scl_data --size 1
+# Then deploy:
+#   fly deploy
+#
+# The free tier covers a single shared-cpu-1x machine with auto-stop.
+# Set the spending limit on your Fly account to $0 if you want a hard cap.
+
+app = "super-conductor-lab"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8765"
+  SCL_RUNS_DIR = "/data/runs"
+
+[[mounts]]
+  source = "scl_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8765
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/healthz"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
