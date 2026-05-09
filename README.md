@@ -2,6 +2,8 @@
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/anduaura/super-conductor-lab)
 
+**[View a recorded run →](https://anduaura.github.io/super-conductor-lab/recorded/)** (active learning hits 282.1 K vs 215.3 K random baseline at seed 42, 50 rounds)
+
 A runnable, numpy-only prototype of a closed-loop neuro-symbolic discovery
 engine for room-temperature superconductor candidates. The whole architecture
 fits in one Python package; nothing is mocked at the API surface — only the

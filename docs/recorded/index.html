@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>super-conductor-lab — recorded run</title>
+  <meta name="description" content="A recorded closed-loop superconductor discovery run, replayed in the browser." />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>super-conductor-lab</h1>
+    <p class="tagline">recorded run · seed 42 · 50 rounds · paired baseline</p>
+    <p class="links">
+      <a href="https://github.com/anduaura/super-conductor-lab">repo</a> ·
+      <a href="https://github.com/anduaura/super-conductor-lab/blob/main/MANIFESTO.md">manifesto</a> ·
+      <a href="https://codespaces.new/anduaura/super-conductor-lab">run your own (Codespaces)</a>
+    </p>
+  </header>
+
+  <main>
+    <section class="panel" id="summary-panel">
+      <h2>Result</h2>
+      <div id="summary-line">loading …</div>
+      <p class="explainer">
+        <strong>Active learning</strong> uses the full closed-loop machinery (UCB acquisition + manifold-curvature bonus,
+        symbolic veto, NNQS quantum-proxy second opinion every 6 rounds, falsification probes every 5 rounds, inverse-design
+        proposals every 7 rounds, all on a process-aware mock lab). <strong>Random baseline</strong> uses the same seed and
+        budget but picks uniformly from the symbolic survivors. The world model is hidden from both — the lab is the only
+        data channel.
+      </p>
+    </section>
+
+    <section class="panel" id="charts-panel">
+      <h2>Charts</h2>
+      <div class="charts">
+        <div class="chart-wrap"><canvas id="best-chart"></canvas></div>
+        <div class="chart-wrap"><canvas id="scatter-chart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="panel" id="log-panel">
+      <h2>Round log</h2>
+      <ol id="round-log"></ol>
+    </section>
+
+    <footer class="footnote">
+      Replayed from <code>active.jsonl</code> + <code>baseline.jsonl</code> — produced by
+      <code>python scripts/record_run.py</code> in this repo.
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
