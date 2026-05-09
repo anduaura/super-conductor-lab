@@ -211,6 +211,49 @@ motivates rather than solves.
   Bearer header, query-param fallback, static-files-open). 67 pytests
   passing total.
 
+### Milestone 8 — split synthesis vs operating pressure (queued)
+Today `scl/world_model.py` rewards high pressure as a Tc multiplier (correct
+for hydrides at synthesis pressure but pointing the optimizer *away* from
+the ambient-pressure RTSC north star). Split the pressure axis: synthesis
+pressure helps form the material (used for `synthesis_window` survival in
+`scl/process.py`), operating pressure must be ~1 atm for the goal. Tc is
+evaluated at operating pressure. Add a `world_mode="ambient"` that
+explicitly targets ambient-pressure RTSC. Smallest, highest-leverage move.
+
+### Milestone 9 — pymatgen-grounded symbolic verifier (queued)
+Replace the 5 hand-coded soft rules in `scl/symbolic.py` with real
+chemistry checks via pymatgen + matminer: charge balance, Goldschmidt
+tolerance factor, formation-energy heuristic against a reference database,
+Pauli/Madelung sanity. Keep the rule registry pattern; add `[chem]`
+optional dependency group. ~150 LOC + adds two well-known deps (with
+`pip install -e '.[chem]'` opt-in so the core stays numpy-only).
+
+### Milestone 10 — literature-search tool for the LLM agent (queued)
+Add `web_search` and `web_fetch` Anthropic server-side tools to
+`scl/agent.py` so the hypothesizer can read the actual superconductor
+literature when proposing candidates ("LaH10-style hydrides at lower
+pressure", "look for ternary carbon hydrides recently reported"). Cheapest
+real-world grounding step; doesn't require any new ML stack.
+
+### Milestone 11 — crystal-graph GNN surrogate (queued)
+Replace `scl/neural.py` (toy GP) with a small graph neural network over
+crystal structures, trained on a public materials dataset (Materials
+Project's superconductor subset, ~16K labeled compositions). Adds a real
+ML stack (`torch`) behind a `[gnn]` optional dependency. Big lift, biggest
+fidelity gain. The closed-loop machinery (UCB / EI / Thompson, manifold
+curvature, NNQS proxy, falsification) is structurally compatible — it
+takes mean+std from the surrogate, doesn't care if the surrogate is a GP
+or a GNN with MC dropout.
+
+### Milestone 12 — calibrate NNQS against real exact-diag (queued)
+Today `scl/nnqs.py` solves a 6-site TFIM with a heuristic
+`(J, h) ↔ candidate-features` mapping. Replace with a learned mapping
+calibrated against exact-diagonalization of small Hubbard models (6–8
+sites) with realistic hopping/Coulomb parameters drawn from DFT for the
+candidate's elements. Turns the "quantum proxy" from a heuristic into a
+real second opinion. Scientific-depth lift; opens the door to extending
+to larger lattices via VMC sampling.
+
 ### Open threads (post-Milestone-7)
 - Auth is single-token only — no per-user accounts, no rotation, no
   scopes. Fine for a personal deploy; would need real auth for sharing.

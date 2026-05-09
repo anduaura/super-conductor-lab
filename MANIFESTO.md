@@ -18,6 +18,77 @@ Every milestone is measured against whether it moves us toward this target.
 See the README's "Goal" section for the software-first replacement table and
 definition of success.
 
+## Why software-first
+
+Three things software actually changes in the discovery pipeline:
+
+1. **Inverse design.** Forward search ("if I mix X and Y, what happens?")
+   explores a vanishingly small fraction of compositional space. Inverse
+   search ("what composition gives me Tc ≥ 293 K at ambient pressure?")
+   starts from the goal and walks backward through the surrogate. GNoME
+   (2023) demonstrated the principle at scale: 2.2M predicted-stable
+   crystals from a generative model + DFT validation, far more candidate
+   diversity than human-led search produced in the prior decade.
+   `scl/diffphys.py` is the toy version in this repo.
+
+2. **Filtering at scale.** A trained crystal-graph GNN ranks ~10⁶
+   candidates per minute. The point isn't "find the answer outright" —
+   it's "narrow the answer space by 4–5 orders of magnitude before any
+   physical experiment runs." The closed loop in `scl/loop.py` is this
+   filter wired to a feedback mechanism; the bench in `docs/bench/` shows
+   it does real work over random sampling even on a toy landscape.
+
+3. **Stability + formal verification.** DFT formation energies + phonon
+   spectra + symbolic checks (pymatgen-style charge balance, Goldschmidt
+   tolerance, Pauli-overlap proxies) catch a substantial fraction of
+   "looks promising but won't synthesize" candidates before lab time gets
+   spent on them. `scl/symbolic.py` is the toy version; queued milestones
+   replace it with real chemistry tooling.
+
+## What software cannot do — the sim-to-real wall
+
+Three categories where simulation systematically misleads, and which the
+toy stand-ins in this repo do **not** model:
+
+- **Impurities.** Real materials carry defect concentrations of
+  10¹⁵–10¹⁹ /cm³. Single-atom defects can kill the superconducting gap.
+  DFT can model dilute defects; real materials are not in the dilute limit.
+- **Kinetic accessibility.** A material can be thermodynamically stable
+  yet practically unmakeable — the synthesis pathway requires energies,
+  timescales, or precursor purities no real reactor produces. Predicting
+  *whether a recipe can be cooked* is much harder than predicting *whether
+  the final product would survive once made*. This is where most "DFT
+  predicts it works" → "lab can't make it" failures occur.
+- **Mesoscale defects.** Grain boundaries, twin domains, dislocations
+  emerge at length scales (nm–µm) above DFT and below continuum
+  elasticity. Currently a known unknown across most of materials science.
+
+## The honest size of the software lever
+
+A defensible estimate of where software-first can take us before the lab
+must take over:
+
+- **Compositional space:** shrink ~10²³ atomic combinations to a shortlist
+  of 10²–10³ candidates worth synthesizing — an 18–21 orders-of-magnitude
+  reduction. This is the dominant lever.
+- **Stability prediction:** correctly flag ~70% of "would not synthesize"
+  candidates via formation energy + phonon spectra; the kinetic-
+  accessibility failures slip through.
+- **Property prediction:** correctly rank-order candidates by predicted Tc
+  with strong correlation to truth, but with residuals large enough that
+  the top-ranked candidate is rarely *the* best.
+
+The right framing is **not** "software solves it, lab confirms it." It's:
+
+> **Software determines what to test; the lab determines what's actually
+> true.**
+
+Both halves are load-bearing. The lab's role doesn't shrink as software
+improves — it moves up the stack, from "screen 10⁶ random candidates" to
+"characterize, replicate, and scale-up the 10² shortlist software handed
+us." The reality gap is the true frontier. Software is the lever that
+makes the gap small enough to cross.
+
 ---
 
 ## 0. Premise
