@@ -62,6 +62,34 @@ $0 limit on that account means nothing can actually be charged.
 The world model is **hidden from the surrogate** — the lab is the only data
 channel. See `CLAUDE.md` for the full set of architectural invariants.
 
+## How each piece helps find a superconductor (ELI5)
+
+Imagine the AI is a kid trying to invent a new kind of magic-cold-rock. There
+are *trillions* of possible recipes and the kid only gets to actually bake a
+few. Every component is one trick that makes those few bakes count.
+
+| Piece | What it does (ELI5) | Why it gets us closer to a superconductor |
+| --- | --- | --- |
+| **Candidates** (`scl/candidates.py`) | A box of LEGO blocks (atoms) you can snap together into rocks. | Defines the space of recipes the AI is even allowed to think about. |
+| **Symbolic veto** (`scl/symbolic.py`) | A strict grandparent who shouts "NO" if you try to put soap in your sandwich. | Throws out recipes that break physics *before* you waste an oven slot on them. |
+| **Neural surrogate** (`scl/neural.py`) | A kid who has tasted 5 candies and now guesses which untried ones will be yummy — and how *sure* they are. | Lets the AI rank trillions of unmade rocks by predicted Tc, with honest "I don't know" zones. |
+| **World model** (`scl/world_model.py`) | The teacher's secret answer key. The kid never sees it; only the oven does. | Pretends to be reality. Forces the AI to learn through experiments instead of cheating. |
+| **Self-driving lab** (`scl/lab.py`) | A robot oven that bakes the recipe and tells you how cold the rock got. Sometimes it sneezes and the number is a little wrong. | The only honest signal the AI gets. Every other module is just guessing about what this will say. |
+| **Process layer** (`scl/process.py`) | The oven sometimes burns the cookie or makes brownies instead. You have to pick recipes that *survive* the oven. | Forces the AI to learn "makeable" alongside "good" — the same gap that breaks real-world materials science. |
+| **UCB picker** (`scl/active.py`) | When choosing the next candy, sometimes pick the one you think is yummiest, sometimes pick the weirdest unknown one. | Balances exploit (test the leader) and explore (learn somewhere new). One pick at a time, used wisely. |
+| **Manifold engine** (`scl/manifold.py`) | When walking blindfolded, notice which spots feel "peaky." Peaks are usually exciting places to dig. | Adds a curvature bonus that nudges the AI toward parts of the recipe space where small changes make a big difference. |
+| **Falsification** (`scl/falsify.py`) | Try to *prove yourself wrong* on purpose. Pick the recipe you think will *fail* and bake it anyway. | If a "should fail" recipe doesn't fail, the AI's mental model has a hole — and it just learned the most informative thing possible. |
+| **Inverse design** (`scl/diffphys.py`) | Instead of guessing recipes and tasting, say "I want a 300K cake" and let math walk *backwards* to a recipe. | Stops random guessing once the AI has a goal. Targets a Tc and asks the surrogate "what composition would give me this?" |
+| **NNQS proxy** (`scl/nnqs.py`) | A tiny pretend lab inside the AI's head that imagines atoms wiggling in quantum-land. | A "second opinion" that catches surrogate hallucinations before the real (slow, expensive) lab gets called. |
+| **Closed-loop driver** (`scl/loop.py`) | The kitchen manager who decides when each helper does what. | Wires everything together: pool → veto → score → pick → bake → learn → repeat. The "discovery" part of "discovery engine." |
+| **Web UI** (`scl/web/`) | A big TV showing the kitchen so a grown-up can watch and start new bakes. | Makes the loop visible and re-runnable; persists every bake so you can compare yesterday's run to today's. |
+
+The trick that makes the whole thing work: the **honest oven** (lab) is the
+only thing that touches the **secret answer key** (world model). Every other
+piece — guesses, vetos, quantum daydreams, peak-feelers, target-walkers — is
+the AI's *self-built understanding* of what the oven will say. The closed loop
+is what makes that understanding sharper every round.
+
 ## Install
 
 ```bash
