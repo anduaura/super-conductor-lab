@@ -1,0 +1,13 @@
+.git
+.github
+.devcontainer
+docs/recorded/*.jsonl
+runs/
+*.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+build/
+dist/
+tests/

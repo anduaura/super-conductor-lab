@@ -172,6 +172,36 @@ motivates rather than solves.
 - 3 new pytests cover the export endpoints (JSON round-trip, CSV columns,
   404 on unknown id). 61 pytests passing.
 
+### Milestone 7 — production hardening (done)
+- **Auth.** When `SCL_AUTH_TOKEN` env var is set (or `--auth-token` is
+  passed to `scl serve`), every `/api/*` request requires
+  `Authorization: Bearer <token>`, or `?token=<token>` query parameter for
+  SSE (which can't send headers). `/healthz` and `/static/*` stay open so
+  the UI can bootstrap and prompt for the token. Token comparison uses
+  `hmac.compare_digest` to avoid timing leaks.
+- **Frontend.** `static/app.js` reads/writes the token from
+  `localStorage`, attaches it to every `fetch`, and inserts `?token=` on
+  EventSource URLs and `<a>` export links. On a 401 the UI prompts for the
+  token and reloads.
+- **Container.** `Dockerfile` (Python 3.11 slim, ~150 MB) installs the
+  package with the `[web]` extra, exposes 8765, runs `scl serve` with
+  `--host 0.0.0.0`. `.dockerignore` excludes test/build artifacts.
+- **Fly.io.** `fly.toml` mounts a `scl_data` volume at `/data` for run
+  persistence, healthchecks `/healthz`, auto-stops when idle. README
+  documents the `fly launch` → `fly secrets set SCL_AUTH_TOKEN` →
+  `fly deploy` path.
+- 6 new pytests cover the auth surface (open paths, blocked API,
+  Bearer header, query-param fallback, static-files-open). 67 pytests
+  passing total.
+
+### Open threads (post-Milestone-7)
+- Auth is single-token only — no per-user accounts, no rotation, no
+  scopes. Fine for a personal deploy; would need real auth for sharing.
+- No rate limiting on the API. A malicious authed user could spam
+  `POST /api/runs` and burn machine time.
+- Run history is unbounded — no GC. Persistent volumes will fill up
+  eventually.
+
 ### Open threads (post-Milestone-6)
 - Compare view doesn't show a delta/diff summary table — just overlaid
   charts. A small "leaderboard" panel listing each compared run's best Tc

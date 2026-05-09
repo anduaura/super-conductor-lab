@@ -33,10 +33,11 @@ _TINY_CONFIG = {
 }
 
 
-def _wait_done(client: TestClient, run_id: str, timeout: float = 15.0) -> dict:
+def _wait_done(client: TestClient, run_id: str, timeout: float = 15.0,
+               headers: dict | None = None) -> dict:
     deadline = time.time() + timeout
     while time.time() < deadline:
-        r = client.get(f"/api/runs/{run_id}")
+        r = client.get(f"/api/runs/{run_id}", headers=headers or {})
         assert r.status_code == 200
         data = r.json()
         if data["status"] in ("done", "failed"):
@@ -160,6 +161,65 @@ def test_export_404_unknown_run(tmp_path: Path):
         for ext in ("json", "csv"):
             r = client.get(f"/api/runs/does-not-exist/export.{ext}")
             assert r.status_code == 404
+
+
+def test_healthz_open(tmp_path: Path):
+    app = create_app(runs_dir=tmp_path)
+    with TestClient(app) as client:
+        r = client.get("/healthz")
+        assert r.status_code == 200
+        assert r.json() == {"status": "ok", "auth_required": False}
+
+
+def test_no_auth_when_token_unset(tmp_path: Path):
+    app = create_app(runs_dir=tmp_path)
+    with TestClient(app) as client:
+        # Plain unauthenticated request succeeds.
+        r = client.get("/api/runs")
+        assert r.status_code == 200
+
+
+def test_auth_blocks_api_without_token(tmp_path: Path):
+    app = create_app(runs_dir=tmp_path, auth_token="hunter2")
+    with TestClient(app) as client:
+        # /healthz still open — UI bootstrap depends on it.
+        assert client.get("/healthz").json()["auth_required"] is True
+        assert client.get("/").status_code == 200
+        # /api/* requires bearer.
+        assert client.get("/api/runs").status_code == 401
+
+
+def test_auth_allows_correct_bearer(tmp_path: Path):
+    app = create_app(runs_dir=tmp_path, auth_token="hunter2")
+    with TestClient(app) as client:
+        r = client.get("/api/runs", headers={"Authorization": "Bearer hunter2"})
+        assert r.status_code == 200
+
+
+def test_auth_query_param_for_sse(tmp_path: Path):
+    """EventSource can't send headers — the middleware must accept ?token=."""
+    app = create_app(runs_dir=tmp_path, auth_token="hunter2")
+    with TestClient(app) as client:
+        # Without token: 401.
+        run_id = client.post(
+            "/api/runs", json=_TINY_CONFIG,
+            headers={"Authorization": "Bearer hunter2"},
+        ).json()["run_id"]
+        _wait_done(client, run_id, headers={"Authorization": "Bearer hunter2"})
+        # Stream with ?token= passes auth.
+        with client.stream("GET", f"/api/runs/{run_id}/stream?token=hunter2") as resp:
+            assert resp.status_code == 200
+        # Wrong query token: 401.
+        with client.stream("GET", f"/api/runs/{run_id}/stream?token=nope") as resp:
+            assert resp.status_code == 401
+
+
+def test_static_files_open_under_auth(tmp_path: Path):
+    """Static assets must load without auth so the UI can prompt for the token."""
+    app = create_app(runs_dir=tmp_path, auth_token="hunter2")
+    with TestClient(app) as client:
+        assert client.get("/static/app.js").status_code == 200
+        assert client.get("/static/style.css").status_code == 200
 
 
 def test_serialize_round_shape():

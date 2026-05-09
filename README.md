@@ -170,6 +170,36 @@ pytest -q
 # loop, and web layers.
 ```
 
+## Deploying a shared instance (Fly.io)
+
+For a permanent multi-user URL — fancier than the static recorded run, since
+visitors can start their own runs:
+
+```bash
+# 1. one-time setup
+fly launch --no-deploy --copy-config --name <YOUR_APP_NAME>
+fly volumes create scl_data --size 1
+fly secrets set SCL_AUTH_TOKEN=$(openssl rand -hex 24)
+
+# 2. deploy
+fly deploy
+```
+
+The included `Dockerfile` installs `[web]` extras and runs `scl serve`.
+`fly.toml` mounts a 1 GB volume at `/data/runs` for run persistence,
+auto-stops the machine when idle, and health-checks `/healthz`.
+
+When `SCL_AUTH_TOKEN` is set, every `/api/*` request requires
+`Authorization: Bearer <token>` (or `?token=<token>` for SSE). Static assets
+and `/healthz` stay open so the UI can bootstrap and prompt for the token.
+Set the **Codespaces / Fly spending limit to $0** if you want a hard cap.
+
+For local development with auth:
+
+```bash
+SCL_AUTH_TOKEN=hunter2 scl serve --port 8765
+```
+
 ## Repository layout
 
 ```
