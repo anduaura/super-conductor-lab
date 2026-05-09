@@ -28,6 +28,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
+    serve = sub.add_parser("serve", help="Launch the web UI.")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
+    serve.add_argument("--runs-dir", default="runs")
+
     run = sub.add_parser("run", help="Run the closed-loop discovery engine.")
     run.add_argument("--rounds", type=int, default=30)
     run.add_argument("--seed", type=int, default=42)
@@ -44,6 +49,18 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--quiet", action="store_true")
 
     args = p.parse_args(argv)
+
+    if args.cmd == "serve":
+        try:
+            import uvicorn
+            from .web.app import create_app
+        except ImportError as e:
+            print(f"web extras not installed: {e}\n"
+                  f"hint: pip install -e '.[web]'", file=sys.stderr)
+            return 2
+        app = create_app(runs_dir=args.runs_dir)
+        uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+        return 0
 
     if args.cmd == "run":
         active = run_loop(

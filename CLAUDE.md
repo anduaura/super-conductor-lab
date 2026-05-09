@@ -107,6 +107,26 @@ channel. Do not import `world_model` from `neural.py`, `loop.py`, `manifold.py`,
   + phase nucleation drift, plumbed through `scl/lab.py`. The loop now learns
   on the **realized** phase, not the requested one.
 
+### Milestone 3 — web UI (done)
+- FastAPI backend (`scl/web/app.py`) with REST + SSE endpoints.
+- `RunManager` (`scl/web/runner.py`) executes each run in a background thread,
+  fans out events via a snapshot-cursor SSE pattern, persists completed runs
+  via `RunStore` (`scl/web/storage.py`) as one JSONL file per run.
+- Single-page vanilla-JS frontend (`scl/web/static/`): config form, live
+  best-so-far line chart, predicted-vs-measured scatter, round log, history
+  table with replay-on-click, optional paired-baseline overlay.
+- `scl serve --port 8765` starts uvicorn on the local host.
+- Web layer is behind the `[web]` optional dep group; importable but not
+  required for the core CLI.
+
+### Open threads (post-Milestone-3)
+- No auth on the web UI — fine for localhost, not for sharing. Add a token
+  if we ever expose it.
+- SSE polls every 100ms; could be reduced via `threading.Event`-bridged
+  asyncio if we ever care about latency.
+- History view replays the full event list each time; for thousands of
+  rounds this becomes O(N) JSON. Add a `?cursor=` parameter when needed.
+
 ### Open threads (post-Milestone-2)
 - NNQS proxy currently uses a heuristic (J, h) ↔ candidate mapping. Replace
   with a learned mapping calibrated against a small DFT/exact-diag dataset.
