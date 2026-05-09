@@ -18,7 +18,7 @@ Each round:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -101,6 +101,7 @@ def run_loop(
     target_tc_k: float = 320.0,
     random_select_only: bool = False,
     verbose: bool = False,
+    on_round: Optional[Callable[["RoundLog"], None]] = None,
 ) -> LoopResult:
     rng = np.random.default_rng(seed)
     lab = Lab(rng=rng)
@@ -132,6 +133,10 @@ def run_loop(
                 best_so_far_k=max(y_train) if y_train else 0.0,
             )
         )
+
+    if on_round is not None:
+        for rl in result.rounds:
+            on_round(rl)
 
     if X_train:
         model.fit(np.stack(X_train), np.array(y_train))
@@ -210,20 +215,21 @@ def run_loop(
             model.fit(np.stack(X_train), np.array(y_train))
 
         best_so_far = max(y_train) if y_train else 0.0
-        result.rounds.append(
-            RoundLog(
-                round=r,
-                candidate=chosen,
-                realized=meas.candidate,
-                predicted_mean=pred_mean,
-                predicted_std=pred_std,
-                quantum_proxy=nnqs_e,
-                measured_tc_k=meas.tc_k,
-                success=meas.success,
-                note=note + (f" [{meas.note}]" if meas.note else ""),
-                best_so_far_k=best_so_far,
-            )
+        round_log = RoundLog(
+            round=r,
+            candidate=chosen,
+            realized=meas.candidate,
+            predicted_mean=pred_mean,
+            predicted_std=pred_std,
+            quantum_proxy=nnqs_e,
+            measured_tc_k=meas.tc_k,
+            success=meas.success,
+            note=note + (f" [{meas.note}]" if meas.note else ""),
+            best_so_far_k=best_so_far,
         )
+        result.rounds.append(round_log)
+        if on_round is not None:
+            on_round(round_log)
 
         if verbose:
             tag = "OK" if meas.success else "FAIL"

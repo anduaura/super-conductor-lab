@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>super-conductor-lab</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>super-conductor-lab</h1>
+    <p class="tagline">closed-loop neuro-symbolic discovery</p>
+  </header>
+
+  <main>
+    <section class="panel" id="config-panel">
+      <h2>New run</h2>
+      <form id="run-form">
+        <div class="grid">
+          <label>rounds <input name="rounds" type="number" value="30" min="1" max="500" /></label>
+          <label>seed <input name="seed" type="number" value="42" /></label>
+          <label>pool size <input name="pool_size" type="number" value="200" min="10" max="2000" /></label>
+          <label>init size <input name="init_size" type="number" value="5" min="1" max="50" /></label>
+          <label>kappa (UCB) <input name="kappa" type="number" value="2.0" step="0.1" min="0" max="10" /></label>
+          <label>manifold weight <input name="manifold_weight" type="number" value="0.5" step="0.1" min="0" max="10" /></label>
+          <label>falsify every <input name="falsify_every" type="number" value="5" min="0" max="100" /></label>
+          <label>inverse every <input name="inverse_every" type="number" value="7" min="0" max="100" /></label>
+          <label>nnqs every <input name="nnqs_every" type="number" value="6" min="0" max="100" /></label>
+          <label>target Tc (K) <input name="target_tc_k" type="number" value="320" step="1" /></label>
+        </div>
+        <div class="row">
+          <label class="checkbox">
+            <input type="checkbox" name="compare_baseline" />
+            compare against random baseline
+          </label>
+          <button type="submit" id="start-btn">Start run</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel" id="status-panel">
+      <h2>Live <span id="run-id-tag"></span></h2>
+      <div id="status-line">idle</div>
+      <div class="charts">
+        <div class="chart-wrap"><canvas id="best-chart"></canvas></div>
+        <div class="chart-wrap"><canvas id="scatter-chart"></canvas></div>
+      </div>
+      <ol id="round-log"></ol>
+    </section>
+
+    <section class="panel" id="history-panel">
+      <h2>History</h2>
+      <button id="refresh-history">refresh</button>
+      <table id="history-table">
+        <thead><tr>
+          <th>id</th><th>when</th><th>status</th><th>rounds</th><th>best Tc</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
