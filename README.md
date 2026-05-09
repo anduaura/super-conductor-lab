@@ -21,6 +21,26 @@ Click the Codespaces badge above. The container will:
 You can then start a run from the form, watch it stream round-by-round, and
 optionally launch a paired random-search baseline for comparison.
 
+### Keeping it free
+
+Codespaces costs nothing for typical demo use, but the only **hard** guarantee
+is a spending limit. Three steps:
+
+1. **Set a $0 spending limit (one-time, hard cap).** GitHub → Settings →
+   Billing & plans → [Codespaces spending limit](https://github.com/settings/billing/spending_limit)
+   → set to **$0**. With this in place, GitHub will refuse to bill you no
+   matter what — usage simply stops once the free tier is exhausted.
+2. **The 2-core default is enough.** Personal accounts get 120 core-hours and
+   15 GB-month of storage free, which is ~60 hours on a 2-core machine. A
+   full demo run is minutes, not hours.
+3. **Stop the codespace when done.** Top-right menu → *Stop codespace*. The
+   default 30-minute idle timeout does this automatically, but stopping
+   manually keeps the meter at zero.
+
+The "Codespace usage for this repository is paid for by anduaura" notice on
+the launch page just routes any billing to the repo owner's account — the
+$0 limit on that account means nothing can actually be charged.
+
 ## Architecture
 
 | Manifesto component                | Module               | Stand-in                                |
