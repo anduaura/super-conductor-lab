@@ -9,6 +9,23 @@ discovery engine for room-temperature superconductor candidates. It maps the
 S-AGI manifesto to runnable code without depending on real DFT, GPUs, or a real
 self-driving lab.
 
+## North star
+
+The ultimate goal is **the discovery of a room-temperature superconductor at
+ambient pressure** (Tc ≥ 293 K, no diamond-anvil cell required). Every
+milestone should be evaluated against whether it moves us toward that —
+typically by replacing a toy stand-in (Gaussian world model, GP surrogate,
+TFIM proxy, hand-coded rules) with a physics-grounded equivalent, sharpening
+the candidate-ranking pipeline, or building the bridge to a real autonomous
+synthesis lab. See the README "Goal" section for the software-first
+replacement plan.
+
+**Known conceptual tension to fix.** The current `world_model.py` rewards
+high pressure as a Tc multiplier, which models the high-pressure-hydride
+regime (LaH₁₀ etc.). The actual goal is *ambient-pressure* RTSC, so a
+follow-up should split the pressure axis into "synthesis pressure" (helps
+form the material) vs "operating pressure" (must be ~1 atm for the goal).
+
 ## Branch + commit policy
 
 - Commit directly to `main`. No feature branches unless the user asks for one.

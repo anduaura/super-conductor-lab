@@ -6,6 +6,18 @@ room-temperature superconductivity would actually require. The "How this maps
 to code" notes after each section pin every claim to a concrete module so the
 manifesto stays a *spec* rather than a wishlist.
 
+## North Star
+
+**The ultimate goal of this project is the discovery of a room-temperature
+superconductor at ambient pressure** — a material with Tc ≥ 293 K (20 °C)
+that does not require diamond-anvil-cell pressures. We tackle as much as
+possible in software first: replacing each toy stand-in in this repo
+(`world_model.py`, `neural.py`, `nnqs.py`, `symbolic.py`) with a
+physics-grounded equivalent before bridging to real autonomous synthesis.
+Every milestone is measured against whether it moves us toward this target.
+See the README's "Goal" section for the software-first replacement table and
+definition of success.
+
 ---
 
 ## 0. Premise

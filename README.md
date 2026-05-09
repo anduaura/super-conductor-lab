@@ -9,6 +9,37 @@ engine for room-temperature superconductor candidates. The whole architecture
 fits in one Python package; nothing is mocked at the API surface — only the
 underlying physics is.
 
+## Goal
+
+The ultimate target: **discover a room-temperature superconductor at ambient
+pressure** — a material with Tc ≥ 293 K (20 °C) that does **not** require
+diamond-anvil-cell pressures. This is the most consequential open problem in
+materials physics; a verified candidate would transform energy distribution,
+transportation, computing, and medical imaging.
+
+We tackle as much as possible **in software first**. Real synthesis is
+$50k–$500k per attempt and gated on autonomous-lab partnerships; real DFT is
+thousands of GPU-hours per candidate. Software is where the iteration loop
+is fastest, so the plan is to swap each toy stand-in in this repo for its
+real counterpart **before** bridging to physical experiments:
+
+| Layer | Currently | Software target |
+| --- | --- | --- |
+| `world_model.py` | 4 hand-placed Gaussian peaks | DFT-grounded GNN trained on Materials Project + OQMD + GNoME |
+| `neural.py` | GP surrogate | GNN over crystal graphs, transfer-learned from above |
+| `nnqs.py` | 6-site TFIM | Deep RBM / transformer ansatz calibrated against exact-diag |
+| `symbolic.py` | 5 hand-coded rules | pymatgen + matminer for charge balance, tolerance factors, formation energy |
+| `agent.py` | toolbox over toy stand-ins | toolbox over the *real* models above + literature search |
+| `lab.py` | mock + noise | API connection to an autonomous synthesis facility (post-software phase) |
+
+Definition of success: a candidate composition that, when synthesized at
+ambient pressure by a partner lab, exhibits zero resistivity *and* the
+Meissner effect at T ≥ 293 K, **replicated by an independent lab**.
+
+Until the software swaps land, this is a sandbox for honing the
+architecture. After, it becomes a real candidate-ranking tool for research
+partners.
+
 ![super-conductor-lab UI](docs/ui.svg)
 
 ## Reading the dashboard
