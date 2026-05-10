@@ -231,13 +231,35 @@ seeds. Reliability is the open problem M9–M12 try to close.
 
 ### Milestone 9 — pymatgen-grounded symbolic verifier (queued)
 
-### Milestone 9 — pymatgen-grounded symbolic verifier (queued)
-Replace the 5 hand-coded soft rules in `scl/symbolic.py` with real
-chemistry checks via pymatgen + matminer: charge balance, Goldschmidt
-tolerance factor, formation-energy heuristic against a reference database,
-Pauli/Madelung sanity. Keep the rule registry pattern; add `[chem]`
-optional dependency group. ~150 LOC + adds two well-known deps (with
-`pip install -e '.[chem]'` opt-in so the core stays numpy-only).
+### Milestone 9 — chemistry-grounded symbolic verifier (done)
+- New `scl/chem.py` with deterministic, pure-numpy chemistry helpers:
+  `charge_residual` (formal-valence-weighted sum), `hydrogen_metal_ratio`,
+  `formation_driving_force` (Pauling-style ΔH proxy), `electron_count_per_formula`,
+  and a pymatgen-gated `pymatgen_charge_balanced` that uses
+  `Composition.oxi_state_guesses` when the optional `[chem]` extra is
+  installed.
+- `scl/symbolic.py` rewired:
+  - Tightened `charge-balance` from |avg_val| < 4 to |residual| < 1.5
+    using `chem.charge_residual` (much stricter — hydrides expected to
+    be near-balanced).
+  - Strengthened `formation-driving-force` from "EN spread > 0.3" to a
+    real pair-wise Pauling proxy `Σ x_i x_j (EN_i − EN_j)² > 0.05`.
+  - New `hydride-stoichiometry` soft rule: H:metal ratio must lie in
+    [0.5, 15] — covers known hydrides up to MH₁₂ but rejects pathological
+    M₀.₀₁H₀.₉₉ compositions.
+  - New `pymatgen-charge-balanced` rule registered conditionally; only
+    fires when `pip install -e '.[chem]'` was run.
+- `[chem]` optional dependency group (`pymatgen>=2024.1`) added to
+  `pyproject.toml`. Core stays numpy-only.
+- 9 new pytests; 1 skipped when pymatgen not installed. 79 pytests
+  passing total.
+
+The new rules are soft (log only, don't veto), so they don't change the
+optimizer's pool but do reach the LLM hypothesizer agent via
+`symbolic_check` feedback — and a follow-up could promote any of them to
+hard if calibration improves.
+
+### Milestone 10 — literature-search tool for the LLM agent (queued)
 
 ### Milestone 10 — literature-search tool for the LLM agent (queued)
 Add `web_search` and `web_fetch` Anthropic server-side tools to
