@@ -76,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
                        choices=["single", "multi", "ambient"])
     bench.add_argument("--out", default="bench.csv",
                        help="output CSV path")
+    bench.add_argument("--threshold", type=float, default=293.0,
+                       help="success-rate threshold in K (default 293, room temp)")
 
     args = p.parse_args(argv)
 
@@ -145,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         to_csv(rows, args.out)
         print(f"\nwrote {args.out} ({len(rows)} rows)\n")
-        print(format_summary(summarize(rows)))
+        print(format_summary(summarize(rows, threshold_k=args.threshold)))
 
     return 0
 

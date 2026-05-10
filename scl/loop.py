@@ -102,6 +102,7 @@ def run_loop(
     random_select_only: bool = False,
     acquisition: str = "ucb",
     world_mode: str = "single",
+    kappa_end: Optional[float] = None,
     use_agent: bool = False,
     agent_model: str = "claude-opus-4-7",
     agent_effort: str = "xhigh",
@@ -157,6 +158,13 @@ def run_loop(
         model.fit(np.stack(X_train), np.array(y_train))
 
     for r in range(rounds):
+        # Linear kappa anneal: high (early exploration) → low (late exploit).
+        if kappa_end is not None and rounds > 1:
+            frac = r / (rounds - 1)
+            current_kappa = kappa + (kappa_end - kappa) * frac
+        else:
+            current_kappa = kappa
+
         pool = [sample_random(rng) for _ in range(pool_size)]
         survivors = [c for c in pool if symbolic_check(c).ok]
         if not survivors:
@@ -269,9 +277,15 @@ def run_loop(
                 note = "random" if random_select_only else "cold-start random"
             elif acquisition == "ucb":
                 chosen, pred_mean, pred_std = _ucb_with_manifold(
-                    survivors, model, kappa, manifold_weight
+                    survivors, model, current_kappa, manifold_weight
                 )
-                note = "UCB+manifold" if manifold_weight > 0 else "UCB"
+                anneal_tag = (
+                    f" κ={current_kappa:.2f}"
+                    if kappa_end is not None else ""
+                )
+                note = (
+                    "UCB+manifold" if manifold_weight > 0 else "UCB"
+                ) + anneal_tag
             elif acquisition == "ei":
                 picks, mu, sd, _ = ei_select(
                     survivors, model, current_best=float(max(y_train)), k=1,

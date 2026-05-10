@@ -336,6 +336,35 @@ can be checked against ground-truth from this routine. The "real DFT
 calibration of (t, U) parameters" awaits Materials Project / OQMD data
 and is now the gating item for further fidelity gains.
 
+### Reliability work (post-M12)
+- New `success_rate` metric in `scl/bench.py.summarize` — fraction of
+  seeds where best Tc ≥ threshold (default 293 K, the RTSC bar).
+  `format_summary` shows it as `P(>293K)`.
+- New `kappa_end` parameter on `scl.loop.run_loop`: linearly anneal κ
+  from `kappa` (round 0) to `kappa_end` (last round). High early κ for
+  exploration, low late κ for exploit.
+- New bench strategies `ucb+anneal` (κ: 4.0 → 0.5) and
+  `ucb+anneal+manifold`. 50-seed × 10-strategy ambient sweep
+  (`docs/bench/reliability.csv`):
+  - `ucb+anneal` = 12 % success rate, 226.8 K median, 333.4 K best —
+    highest median of any strategy and tied-best success rate.
+  - Doubles UCB's success rate (12 % vs 6 %).
+  - **No strategy clears 293 K reliably.** 12 % is the achievable ceiling
+    in this synthetic ambient world with a 30-round budget.
+- `ucb+anneal+manifold` only 2 % — strategy-stacking isn't free; high
+  early κ + curvature bonus = too much exploration.
+
+### Open threads (post-reliability work)
+- Horizon scaling: P(≥293 K) at 60 / 100 / 200 rounds. Today's bench
+  uses 30 rounds; the loop may converge to higher rates given more time.
+- Adaptive cadence: trigger falsification only when surrogate
+  uncertainty is high (vs every 5 rounds fixed). The current
+  `ucb+falsify` is 0 %, suggesting fixed-cadence falsification actively
+  hurts on the ambient landscape.
+- Multi-restart: partition the 30-round budget across K independent
+  chains and take the max. Tests whether the loop gets stuck in local
+  optima.
+
 ### Open threads (post-Milestone-12)
 - Hubbard solver scales as `C(N, N/2)²` — practical only up to N=8.
   Going larger needs VMC sampling (which the existing RBM machinery

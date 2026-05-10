@@ -41,6 +41,14 @@ _STRATEGIES: dict[str, dict] = {
     "ucb+manifold": {**_BASE_KW, "acquisition": "ucb", "manifold_weight": 0.5},
     "ucb+falsify": {**_BASE_KW, "acquisition": "ucb", "falsify_every": 5},
     "ucb+inverse": {**_BASE_KW, "acquisition": "ucb", "inverse_every": 7},
+    "ucb+anneal": {
+        **_BASE_KW, "acquisition": "ucb",
+        "kappa": 4.0, "kappa_end": 0.5,
+    },
+    "ucb+anneal+manifold": {
+        **_BASE_KW, "acquisition": "ucb",
+        "kappa": 4.0, "kappa_end": 0.5, "manifold_weight": 0.5,
+    },
     "all": {
         **_BASE_KW,
         "acquisition": "ucb",
@@ -157,7 +165,13 @@ def to_csv(rows: list[BenchResult], path: Path | str) -> None:
             ])
 
 
-def summarize(rows: list[BenchResult]) -> list[dict]:
+def summarize(rows: list[BenchResult], threshold_k: float = 293.0) -> list[dict]:
+    """Per-strategy aggregate stats.
+
+    ``threshold_k`` (default 293 K, the room-temperature bar) is the cutoff
+    for the per-strategy ``success_rate`` — fraction of seeds that produced
+    at least one measurement above it.
+    """
     by_strat: dict[str, list[float]] = {}
     by_strat_t: dict[str, list[float]] = {}
     for r in rows:
@@ -176,16 +190,21 @@ def summarize(rows: list[BenchResult]) -> list[dict]:
             "best_tc_k": float(np.max(a)),
             "worst_tc_k": float(np.min(a)),
             "median_elapsed_s": float(np.median(by_strat_t[strat])),
+            "success_rate": float(np.mean(a >= threshold_k)),
+            "threshold_k": float(threshold_k),
         })
-    out.sort(key=lambda r: -r["median_tc_k"])
+    out.sort(key=lambda r: (-r["success_rate"], -r["median_tc_k"]))
     return out
 
 
 def format_summary(summary: list[dict]) -> str:
     lines = []
+    threshold = summary[0]["threshold_k"] if summary else 293.0
+    threshold_label = f"P(>{int(threshold)}K)"
     header = (
         f"{'strategy':>14}  {'n':>3}  {'median':>8}  "
-        f"{'p25':>8}  {'p75':>8}  {'best':>8}  {'time':>6}"
+        f"{'p25':>8}  {'p75':>8}  {'best':>8}  "
+        f"{threshold_label:>10}  {'time':>6}"
     )
     lines.append(header)
     lines.append("-" * len(header))
@@ -194,6 +213,7 @@ def format_summary(summary: list[dict]) -> str:
             f"{s['strategy']:>14}  {s['n']:>3}  "
             f"{s['median_tc_k']:>7.1f}K  {s['p25_tc_k']:>7.1f}K  "
             f"{s['p75_tc_k']:>7.1f}K  {s['best_tc_k']:>7.1f}K  "
+            f"{s['success_rate'] * 100:>9.0f}%  "
             f"{s['median_elapsed_s']:>5.1f}s"
         )
     return "\n".join(lines)
