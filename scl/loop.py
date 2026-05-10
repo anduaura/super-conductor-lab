@@ -105,12 +105,17 @@ def run_loop(
     use_agent: bool = False,
     agent_model: str = "claude-opus-4-7",
     agent_effort: str = "xhigh",
+    surrogate_kind: str = "gp",
     verbose: bool = False,
     on_round: Optional[Callable[["RoundLog"], None]] = None,
 ) -> LoopResult:
     rng = np.random.default_rng(seed)
     lab = Lab(rng=rng, world_mode=world_mode)
-    model = GPSurrogate()
+    if surrogate_kind == "gp":
+        model = GPSurrogate()
+    else:
+        from .gnn import make_surrogate
+        model = make_surrogate(surrogate_kind)
 
     agent = None
     if use_agent:

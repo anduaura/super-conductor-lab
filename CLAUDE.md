@@ -281,15 +281,33 @@ alone. Cheapest real-world grounding step in the M8–M12 set.
 
 ### Milestone 11 — crystal-graph GNN surrogate (queued)
 
-### Milestone 11 — crystal-graph GNN surrogate (queued)
-Replace `scl/neural.py` (toy GP) with a small graph neural network over
-crystal structures, trained on a public materials dataset (Materials
-Project's superconductor subset, ~16K labeled compositions). Adds a real
-ML stack (`torch`) behind a `[gnn]` optional dependency. Big lift, biggest
-fidelity gain. The closed-loop machinery (UCB / EI / Thompson, manifold
-curvature, NNQS proxy, falsification) is structurally compatible — it
-takes mean+std from the surrogate, doesn't care if the surrogate is a GP
-or a GNN with MC dropout.
+### Milestone 11 — torch-backed neural surrogate (structural integration done; GNN-over-structures queued)
+- New `scl/gnn.py` with `TorchSurrogate` — small MLP + MC dropout, same
+  `fit(X, y)` / `predict(X) -> (mean, std)` contract as the existing
+  `GPSurrogate`. Lazy-imports torch so the module is import-cheap and
+  works without torch installed.
+- New `make_surrogate(kind="gp"|"nn")` factory.
+- `scl/loop.py` accepts `surrogate_kind` parameter (default `"gp"`,
+  preserving existing behavior).
+- `scl/cli.py` exposes `--surrogate gp|nn` on `scl run`.
+- `pyproject.toml`: new `[gnn]` extra (`torch>=2.0`).
+- 6 new pytests; 4 skip when torch not installed (CI default). 84 tests
+  passing total.
+
+The today-implementation operates on the existing 7-feature composition
+vector — **functionally an MLP, not a GNN**. The "GNN over crystal
+structures" version (transfer-learned from Materials Project's
+superconductor subset, ~16K labelled compositions) requires actual
+structure data (atomic positions, space groups) which `Candidate`
+doesn't currently model. So the real GNN upgrade is now gated on:
+extending the candidate space → ingesting MP/OQMD/GNoME → training.
+
+The structural integration is the value: every other module
+(loop, manifold, diffphys, falsify, NNQS, agent) takes mean+std from
+the surrogate without caring whether it's a GP or a neural net. The
+swap point is now a single CLI flag.
+
+### Milestone 12 — calibrate NNQS against real exact-diag (queued)
 
 ### Milestone 12 — calibrate NNQS against real exact-diag (queued)
 Today `scl/nnqs.py` solves a 6-site TFIM with a heuristic
