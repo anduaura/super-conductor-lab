@@ -51,6 +51,9 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--world-mode", default="single",
                      choices=["single", "multi", "ambient"],
                      help="ground-truth Tc landscape (single peak vs multi-modal)")
+    run.add_argument("--surrogate", default="gp", choices=["gp", "nn"],
+                     dest="surrogate_kind",
+                     help="surrogate model: 'gp' (numpy-only, default) or 'nn' (torch, requires [gnn] extra)")
     run.add_argument("--use-agent", action="store_true",
                      help="drive selection with an LLM hypothesizer (requires [agent] extras)")
     run.add_argument("--agent-model", default="claude-opus-4-7")
@@ -105,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
             use_agent=args.use_agent,
             agent_model=args.agent_model,
             agent_effort=args.agent_effort,
+            surrogate_kind=args.surrogate_kind,
             verbose=not args.quiet,
         )
         _print_summary("active learning" + (" (LLM agent)" if args.use_agent else ""), active)
