@@ -119,6 +119,58 @@ reliability gap is the main motivation for the queued M9–M12 (real
 chemistry, learned surrogates, calibrated quantum proxy, literature-
 grounded agent).
 
+## Reliability sweep (`reliability.csv`) — quantifying RTSC discovery
+
+The 8×10 grids above answer "median Tc per strategy"; this one answers
+**"how often does the loop actually find an ambient-pressure RTSC
+candidate?"** — defined as `best Tc ≥ 293 K`. 50 seeds × 10 strategies
+× 30 rounds × ambient mode.
+
+| strategy | median | best | **P(≥293 K)** |
+| --- | ---: | ---: | ---: |
+| **ucb+anneal** (new) | **226.8 K** | **333.4 K** | **12 %** |
+| ei | 197.8 K | 330.6 K | 12 % |
+| ucb | 215.7 K | 311.3 K | 6 % |
+| ucb+manifold | 209.3 K | 317.9 K | 6 % |
+| all | 155.1 K | 317.9 K | 4 % |
+| thompson | 146.2 K | 327.4 K | 4 % |
+| ucb+inverse | 205.3 K | 312.7 K | 2 % |
+| ucb+anneal+manifold | 166.0 K | 299.4 K | 2 % |
+| ucb+falsify | 167.3 K | 283.7 K | 0 % |
+| **random** | **119.9 K** | 239.1 K | **0 %** |
+
+### What we learn
+
+1. **Annealed κ doubles the success rate.** Going from constant κ=2.0 to
+   κ linearly decaying from 4.0 (early exploration) to 0.5 (late exploit)
+   raises success rate from 6 % → 12 % AND raises best-ever Tc from
+   317.9 K → 333.4 K — the highest of any run across all benches.
+2. **EI matches `ucb+anneal` on success rate but loses on median.**
+   EI has heavier tails (12 % success, but only 197.8 K median); annealed
+   UCB has tighter exploitation late in the loop.
+3. **Manifold curvature hurts when combined with annealing.** Already-
+   exploring early κ + curvature bonus = too much exploration; the loop
+   never settles. `ucb+anneal+manifold` is 2 %, vs 12 % for plain
+   `ucb+anneal`. Strategy-stacking isn't free.
+4. **Random search hits 0 %** even with 50 seeds. The closed loop is
+   doing real work; the gap between best Bayesian and random is now
+   cleanly quantified.
+5. **No strategy clears 293 K reliably.** 12 % is the ceiling we found
+   with this architecture and a 30-round budget. The next levers
+   (longer horizon, real DFT-trained surrogate, real autonomous lab
+   data) are documented as post-M12 open threads.
+
+Reproduce:
+
+```bash
+scl bench \
+  --strategies "random,ucb,ei,thompson,ucb+manifold,ucb+falsify,ucb+inverse,ucb+anneal,ucb+anneal+manifold,all" \
+  --seeds "$(python -c 'print(",".join(str(i) for i in range(1, 51)))')" \
+  --rounds 30 \
+  --world-mode ambient \
+  --out docs/bench/reliability.csv
+```
+
 ## Notes
 
 - Each row is best-Tc-found from a single seeded run; per-seed variance is

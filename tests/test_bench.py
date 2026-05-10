@@ -56,6 +56,27 @@ def test_summary_orders_by_median():
     assert "strategy" in formatted and "median" in formatted
 
 
+def test_summary_includes_success_rate():
+    rows = run_grid(["random", "ucb"], seeds=[1, 2], **_TINY)
+    summary = summarize(rows, threshold_k=10.0)
+    assert all("success_rate" in s for s in summary)
+    assert all(0.0 <= s["success_rate"] <= 1.0 for s in summary)
+
+
+def test_anneal_strategies_registered():
+    """Annealed-κ strategies must be available alongside the static ones."""
+    s = available_strategies()
+    assert "ucb+anneal" in s
+    assert "ucb+anneal+manifold" in s
+
+
+def test_run_one_anneal_runs():
+    """Annealed-κ strategy runs end-to-end and produces a finite result."""
+    row = run_one("ucb+anneal", seed=0, **_TINY)
+    assert row.strategy == "ucb+anneal"
+    assert row.best_tc_k >= 0
+
+
 def test_run_one_multi_mode_runs():
     row = run_one("ucb", seed=0, rounds=4, world_mode="multi",
                   pool_size=20, init_size=2)
