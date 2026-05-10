@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--acquisition", default="ucb",
                      choices=["ucb", "ei", "thompson"])
     run.add_argument("--world-mode", default="single",
-                     choices=["single", "multi"],
+                     choices=["single", "multi", "ambient"],
                      help="ground-truth Tc landscape (single peak vs multi-modal)")
     run.add_argument("--use-agent", action="store_true",
                      help="drive selection with an LLM hypothesizer (requires [agent] extras)")
@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     bench.add_argument("--pool", type=int, default=200, dest="pool_size")
     bench.add_argument("--init", type=int, default=5, dest="init_size")
     bench.add_argument("--world-mode", default="single",
-                       choices=["single", "multi"])
+                       choices=["single", "multi", "ambient"])
     bench.add_argument("--out", default="bench.csv",
                        help="output CSV path")
 
