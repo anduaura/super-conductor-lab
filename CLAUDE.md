@@ -211,14 +211,25 @@ motivates rather than solves.
   Bearer header, query-param fallback, static-files-open). 67 pytests
   passing total.
 
-### Milestone 8 — split synthesis vs operating pressure (queued)
-Today `scl/world_model.py` rewards high pressure as a Tc multiplier (correct
-for hydrides at synthesis pressure but pointing the optimizer *away* from
-the ambient-pressure RTSC north star). Split the pressure axis: synthesis
-pressure helps form the material (used for `synthesis_window` survival in
-`scl/process.py`), operating pressure must be ~1 atm for the goal. Tc is
-evaluated at operating pressure. Add a `world_mode="ambient"` that
-explicitly targets ambient-pressure RTSC. Smallest, highest-leverage move.
+### Milestone 8 — split synthesis vs operating pressure (done)
+- `scl/world_model.py` — added `mode="ambient"` that evaluates Tc at
+  operating pressure ≈ 1 atm regardless of the candidate's synthesis
+  pressure. Synthesis pressure (the `pressure_gpa` field) still drives
+  `scl/process.synthesis_window` and phase nucleation drift in `lab.py`,
+  but no longer enters the Tc formula. Four ambient peaks placed at
+  (h_frac, en_diff, avg_val) only; highest is 305 K at unusual valence.
+- Threaded `--world-mode ambient` through `scl/cli.py` and the bench
+  harness.
+- 4 new pytests covering the ambient mode (ignores pressure, kills the
+  multi-mode winner, attainable Tc range). 71 pytests passing.
+
+Headline ambient-mode bench (`docs/bench/ambient.csv`, 8 strategies × 10
+seeds, 30 rounds): UCB hits 237.8 K median / 311.3 K best, UCB+manifold
+317.9 K best, random 112.6 K median. Three strategies cleared the 293 K
+RTSC threshold on individual seeds — but never consistently across all
+seeds. Reliability is the open problem M9–M12 try to close.
+
+### Milestone 9 — pymatgen-grounded symbolic verifier (queued)
 
 ### Milestone 9 — pymatgen-grounded symbolic verifier (queued)
 Replace the 5 hand-coded soft rules in `scl/symbolic.py` with real

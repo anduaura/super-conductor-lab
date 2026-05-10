@@ -70,6 +70,55 @@ Three things to read off this table:
    incorporate prior structure (e.g. the LLM hypothesizer agent). It's the
    open problem this prototype motivates rather than solves.
 
+## Ambient-pressure landscape (`ambient.csv`) — the actual goal
+
+`mode="ambient"` evaluates Tc at operating pressure ≈ 1 atm regardless of
+the candidate's synthesis pressure. High-pressure-only superconductors
+(LaH₁₀ regime) score near zero. The four peaks are placed at
+(h_frac, en_diff, avg_val) combinations only:
+
+| peak | h_frac | en_diff | avg_val | height |
+| --- | ---: | ---: | ---: | ---: |
+| anomalous valence | 0.45 | 1.5 | 0.5 | 250 K |
+| high-H + common valence | 0.85 | 1.0 | 2.0 | 220 K |
+| cuprate-like (S-rich) | 0.30 | 2.0 | 1.0 | 270 K |
+| **closest to RTSC** | **0.50** | **1.6** | **1.5** | **305 K** |
+
+This is the landscape that actually points the optimizer at the project's
+north star — ambient-pressure Tc ≥ 293 K. Same 8 × 10 grid as above:
+
+| strategy | n | median | p25 | p75 | best |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| **ucb** | 10 | **237.8 K** | 132.3 | 249.1 | **311.3 K** |
+| ei | 10 | 233.9 K | 167.5 | 248.1 | 299.6 K |
+| ucb+manifold | 10 | 191.4 K | 151.8 | 241.9 | **317.9 K** |
+| ucb+inverse | 10 | 189.9 K | 133.1 | 248.3 | 266.4 K |
+| ucb+falsify | 10 | 172.9 K | 148.0 | 227.0 | 279.7 K |
+| all | 10 | 155.7 K | 136.2 | 198.0 | **317.9 K** |
+| thompson | 10 | 146.9 K | 115.5 | 180.0 | 268.1 K |
+| **random** | 10 | **112.6 K** | 83.7 | 149.8 | 194.7 K |
+
+Three observations:
+
+1. **The RTSC threshold (293 K) was crossed.** Three strategies (`ucb`,
+   `ucb+manifold`, `all`) hit best-Tc above 293 K on at least one seed —
+   the synthetic landscape says these compositions qualify as
+   ambient-pressure RTSC.
+2. **No strategy reliably gets there.** Median Tc tops out at 237.8 K
+   (`ucb`); the high-Tc hits are best-of-10 outliers, not consistent
+   discovery. The closed loop *can* find Peak D when seeded right; it
+   doesn't always.
+3. **Random search is firmly bottom (median 112.6 K).** The closed loop
+   delivers a 2.1× median improvement over random — the largest gap of
+   any landscape we've measured.
+
+This is the cleanest expression to date of the project's actual purpose:
+the optimizer is *capable* of finding ambient-pressure RTSC candidates in
+a landscape that has them, but is not yet *reliable* at it. Closing that
+reliability gap is the main motivation for the queued M9–M12 (real
+chemistry, learned surrogates, calibrated quantum proxy, literature-
+grounded agent).
+
 ## Notes
 
 - Each row is best-Tc-found from a single seeded run; per-seed variance is
