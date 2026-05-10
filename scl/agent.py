@@ -28,7 +28,7 @@ from .diffphys import inverse_design
 from .falsify import falsify_neighbors
 from .manifold import curvature
 from .neural import GPSurrogate
-from .nnqs import quantum_proxy
+from .nnqs import hubbard_proxy, quantum_proxy
 from .symbolic import symbolic_check
 
 
@@ -169,7 +169,19 @@ TOOLS: list[dict[str, Any]] = [
     },
     {
         "name": "quantum_proxy",
-        "description": "NNQS variational ground-state energy per site. Slow (~1s). Lower = stronger coupling regime. Use sparingly on top picks.",
+        "description": "NNQS variational ground-state energy per site (TFIM model). Approximate; serves as a coupling-regime indicator. Slow (~1s). Lower = stronger coupling regime. Use sparingly on top picks.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "composition": {"type": "array", "items": {"type": "array"}},
+                "pressure_gpa": {"type": "number"},
+            },
+            "required": ["composition", "pressure_gpa"],
+        },
+    },
+    {
+        "name": "hubbard_proxy",
+        "description": "Exact-diagonalised Hubbard-model ground-state energy per site for a 4-site chain at half-filling. The candidate's features map to (t, U); the solver is exact (no variational error). Returns per-site energy: more negative = kinetic-energy regime (metallic, more conducive to phonon-mediated SC), positive = Mott-insulating regime. Faster and more rigorous than quantum_proxy for direct calibration.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -321,6 +333,11 @@ class AgentTools:
         c = _parse_candidate(inp)
         e = quantum_proxy(c, n_sites=4, n_hidden=4, steps=40, lr=0.05)
         return {"energy_per_site": float(e)}
+
+    def _tool_hubbard_proxy(self, inp: dict[str, Any]) -> dict[str, Any]:
+        c = _parse_candidate(inp)
+        e = hubbard_proxy(c, n_sites=4)
+        return {"energy_per_site": float(e), "model": "1D Hubbard, 4 sites, half-filling"}
 
     def _tool_inspect_history(self, inp: dict[str, Any]) -> dict[str, Any]:
         last_n = int(inp.get("last_n", 10))
