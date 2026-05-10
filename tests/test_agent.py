@@ -197,12 +197,33 @@ def test_agent_caches_system_prompt():
 
 
 def test_tool_definitions_well_formed():
-    """Every tool has the required schema fields."""
+    """Every custom tool has the required schema fields; server-side tools
+    have only type + name (Anthropic-managed schemas)."""
     names = {t["name"] for t in TOOLS}
     assert "submit_to_lab" in names
     assert "symbolic_check" in names
     for tool in TOOLS:
         assert "name" in tool
+        if tool.get("type", "").startswith(("web_", "code_")):
+            # Server-side tools — Anthropic owns the input schema.
+            continue
         assert "description" in tool
         assert "input_schema" in tool
         assert tool["input_schema"]["type"] == "object"
+
+
+def test_literature_search_tools_registered():
+    """The web_search and web_fetch server-side tools must be present so
+    the agent can ground proposals in real literature."""
+    server_tools = [t for t in TOOLS if t.get("type", "").startswith("web_")]
+    types = {t["type"] for t in server_tools}
+    names = {t["name"] for t in server_tools}
+    assert "web_search_20260209" in types
+    assert "web_fetch_20260209" in types
+    assert {"web_search", "web_fetch"} <= names
+
+
+def test_system_prompt_mentions_literature():
+    """System prompt should teach the agent when to use web_search."""
+    assert "web_search" in SYSTEM_PROMPT
+    assert "web_fetch" in SYSTEM_PROMPT

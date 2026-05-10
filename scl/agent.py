@@ -50,8 +50,19 @@ The materials space:
 - Fractions must sum to 1.0.
 
 The tools you have:
-- propose_random_pool(n): Sample n random valid candidates. Useful for cold
-  start or exploration.
+- web_search(query): Anthropic-hosted web search. USE THIS at cold start
+  to ground your first few proposals in actual superconductor literature
+  (recent ambient-pressure RTSC claims, hydride compositions reported at
+  lower pressures, ternary additions that improved Tc). Don't web_search
+  every round — once you have measurement data, the surrogate is the
+  primary signal. One or two literature searches per run is plenty.
+- web_fetch(url): Anthropic-hosted URL fetcher. Use to read the abstract
+  or methods section of a paper web_search surfaced. Output is the raw
+  page; pull out the composition / pressure / Tc and reason about whether
+  it's worth trying a variant.
+- propose_random_pool(n): Sample n random valid candidates. Useful for
+  cold start or exploration when literature search doesn't surface a
+  clear lead.
 - symbolic_check(composition, pressure_gpa): First-principles validity
   check. Hard rules veto the candidate; soft rules are warnings. ALWAYS run
   before submit_to_lab.
@@ -73,8 +84,10 @@ The tools you have:
   after this.
 
 Strategy guidance:
-- Cold start (no measurements yet): explore broadly with
-  propose_random_pool, filter via symbolic_check, pick something promising.
+- Cold start (no measurements yet): web_search the recent superconductor
+  literature for compositions that recently improved Tc (or ambient-
+  pressure claims), let that anchor your first 1-3 picks; fall back to
+  propose_random_pool + symbolic_check if nothing useful surfaces.
 - With data: balance EXPLOIT (highest predicted Tc), EXPLORE (highest
   uncertainty), and FALSIFY (probe what your model says will fail). Use
   inverse_design when you have a clear target and want to go directly
@@ -86,6 +99,11 @@ then act. Do not narrate every tool call."""
 
 
 TOOLS: list[dict[str, Any]] = [
+    # Anthropic server-side tools — the agent uses these to ground hypotheses
+    # in actual superconductor literature instead of relying on its training
+    # data alone. Executed by Anthropic; we never see them in our tool runner.
+    {"type": "web_search_20260209", "name": "web_search"},
+    {"type": "web_fetch_20260209", "name": "web_fetch"},
     {
         "name": "propose_random_pool",
         "description": "Sample n random candidates that pass the hard symbolic checks. Returns a list of {composition, pressure_gpa, formula} objects.",

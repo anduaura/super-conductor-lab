@@ -261,12 +261,25 @@ hard if calibration improves.
 
 ### Milestone 10 — literature-search tool for the LLM agent (queued)
 
-### Milestone 10 — literature-search tool for the LLM agent (queued)
-Add `web_search` and `web_fetch` Anthropic server-side tools to
-`scl/agent.py` so the hypothesizer can read the actual superconductor
-literature when proposing candidates ("LaH10-style hydrides at lower
-pressure", "look for ternary carbon hydrides recently reported"). Cheapest
-real-world grounding step; doesn't require any new ML stack.
+### Milestone 10 — literature-search tool for the LLM agent (done)
+- Added `web_search_20260209` and `web_fetch_20260209` Anthropic
+  server-side tools to `scl/agent.py`'s `TOOLS` list. These run on
+  Anthropic's infrastructure — no client-side execution.
+- System prompt updated with explicit guidance: web_search at cold start
+  to ground first proposals in literature, fall back to
+  `propose_random_pool` if nothing useful surfaces, don't web_search
+  every round (cost + latency).
+- 2 new pytests: `test_literature_search_tools_registered` and
+  `test_system_prompt_mentions_literature`. Updated
+  `test_tool_definitions_well_formed` to handle the server-side schema
+  (just `type` + `name`, no `input_schema`). 81 pytests passing.
+
+This unblocks the agent reasoning over actual ambient-pressure RTSC
+claims (e.g. recent ternary-hydride papers, post-LK-99 careful claims)
+when proposing candidates instead of relying on training-data priors
+alone. Cheapest real-world grounding step in the M8–M12 set.
+
+### Milestone 11 — crystal-graph GNN surrogate (queued)
 
 ### Milestone 11 — crystal-graph GNN surrogate (queued)
 Replace `scl/neural.py` (toy GP) with a small graph neural network over
