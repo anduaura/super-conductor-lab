@@ -144,3 +144,115 @@ def quantum_proxy(c: Candidate, n_sites: int = 6, n_hidden: int = 8,
                           seed=hash(c.formula()) & 0xFFFF)
     rbm.fit(J, h_field, steps=steps, lr=lr)
     return rbm.energy(J, h_field) / n_sites
+
+
+# ----------------------------------------------------------------------------
+# Hubbard model — exact diagonalization at half-filling.
+#
+# More physically relevant than TFIM for electronic superconductivity (cuprates,
+# hydrides). The mapping from candidate features to (t, U) is still heuristic —
+# real DFT-derived hopping/Coulomb parameters await Materials-Project-grade
+# data. But the underlying solver is exact (no variational error), so it
+# provides a calibration point: NNQS estimates of the same problem can be
+# checked against this.
+# ----------------------------------------------------------------------------
+
+
+def _hop_spinless(state: int, i: int, j: int) -> tuple[int | None, int]:
+    """Apply ``c†_i c_j`` on a spinless basis state encoded as an integer.
+
+    Returns ``(new_state, sign)`` or ``(None, 0)`` if the hop is forbidden
+    (j unoccupied or i already occupied). The sign comes from fermion
+    antisymmetry — the parity of occupied sites strictly between i and j.
+    """
+    if not ((state >> j) & 1):
+        return None, 0
+    if (state >> i) & 1:
+        return None, 0
+    lo, hi = (i, j) if i < j else (j, i)
+    mask = ((1 << hi) - 1) & ~((1 << (lo + 1)) - 1)
+    sign = -1 if bin(state & mask).count("1") % 2 else 1
+    new_state = (state | (1 << i)) & ~(1 << j)
+    return new_state, sign
+
+
+def hubbard_ground_energy(
+    n_sites: int = 4, t: float = 1.0, U: float = 0.0, periodic: bool = True,
+) -> float:
+    """Exact ground-state energy of the 1D Hubbard model at half-filling.
+
+    H = -t Σ_<ij,σ> (c†_iσ c_jσ + h.c.) + U Σ_i n_i↑ n_i↓
+
+    Constructs the full Hamiltonian on the half-filled subspace
+    (size ``C(N, N/2)²``) and diagonalises with ``np.linalg.eigvalsh``.
+    For ``N=4`` the matrix is 36×36; for ``N=6`` it is 400×400.
+    """
+    N = n_sites
+    if N % 2 != 0:
+        raise ValueError("half-filling requires even number of sites")
+    if N > 8:
+        raise ValueError("exact diag impractical above N=8")
+    half = N // 2
+
+    spin_basis = [s for s in range(1 << N) if bin(s).count("1") == half]
+    n_spin = len(spin_basis)
+    spin_to_idx = {s: i for i, s in enumerate(spin_basis)}
+    D = n_spin * n_spin
+    H = np.zeros((D, D))
+
+    # On-site U: diagonal — count doubly-occupied sites.
+    for i_up, up in enumerate(spin_basis):
+        for i_dn, dn in enumerate(spin_basis):
+            doubles = bin(up & dn).count("1")
+            if doubles:
+                idx = i_up * n_spin + i_dn
+                H[idx, idx] += U * doubles
+
+    # Hopping — off-diagonal. For each NN pair, both spins, both directions.
+    nn_pairs: list[tuple[int, int]] = [(i, i + 1) for i in range(N - 1)]
+    if periodic and N > 2:
+        nn_pairs.append((N - 1, 0))
+
+    for i, j in nn_pairs:
+        for s_old_idx, s_old in enumerate(spin_basis):
+            for new, sign in (
+                _hop_spinless(s_old, i, j),
+                _hop_spinless(s_old, j, i),
+            ):
+                if new is None:
+                    continue
+                s_new_idx = spin_to_idx[new]
+                # Up-spin hop: down sector unchanged.
+                for other in range(n_spin):
+                    H[s_new_idx * n_spin + other, s_old_idx * n_spin + other] += -t * sign
+                # Down-spin hop: up sector unchanged.
+                for other in range(n_spin):
+                    H[other * n_spin + s_new_idx, other * n_spin + s_old_idx] += -t * sign
+
+    eigvals = np.linalg.eigvalsh(H)
+    return float(eigvals[0])
+
+
+def hubbard_proxy(c: Candidate, n_sites: int = 4, periodic: bool = True) -> float:
+    """Map a candidate to Hubbard ``(t, U)`` and return per-site ground energy.
+
+    Heuristic mapping (calibrated against intuition, not yet against DFT):
+      t — hopping. Larger H content tightens metal-H bonds → larger t;
+          larger ionic radii loosen them → smaller t.
+      U — on-site Coulomb. Larger EN contrast → more polar bonding → larger U.
+
+    Returns ground energy per site. Lower (more negative) values mean the
+    kinetic-energy term dominates ("metallic" regime, more conducive to
+    phonon-mediated superconductivity); positive values mean U dominates
+    (Mott-insulating regime).
+    """
+    feats = featurize(c)
+    avg_radius = float(feats[2])
+    h_frac = float(feats[4])
+    en_diff = float(feats[5])
+
+    t = max(0.05, 1.0 - 0.003 * avg_radius + 0.5 * h_frac)
+    U = max(0.05, 0.3 + 1.2 * en_diff)
+
+    e_gs = hubbard_ground_energy(n_sites=n_sites, t=t, U=U, periodic=periodic)
+    return e_gs / n_sites
